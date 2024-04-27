@@ -1,0 +1,48 @@
+[
+  {
+    "cmd":"bcl2slot",
+    "bcl":"110-",
+    "slot":1
+  },
+  {
+    "cmd":"bcl2slot",
+    "bcl":"-101",
+    "slot":0
+  },
+  {
+    "cmd":"show",
+    "slot":0
+  },
+  {
+    "cmd":"show",
+    "slot":1
+  },
+  {
+    "cmd":"intersection0",
+    "slot":1
+  },
+  {
+    "cmd":"show",
+    "slot":0
+  },
+  {
+    "cmd":"bcl2slot",
+    "bcl":"--1-",
+    "slot":0
+  },
+  {
+    "cmd":"show",
+    "slot":0
+  },
+  {
+    "cmd":"subtract0",
+    "bcl":"1111",
+    "label0":"subtract"
+  },
+  {
+    "cmd":"show",
+    "slot":0
+  }
+  
+]
+
