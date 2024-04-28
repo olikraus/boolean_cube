@@ -271,9 +271,10 @@ int bc_ExecuteParse(const char *s)
 
 const char *json_input_spec = 
 "JSON Input    := [ <block> ]\n"
-"block         := <bcl2slot> |  <show> | <intersection0> | <subtract0> | <equal0> | <exchange0> | <copy0> | <setup>\n"
+"block         := <bcl2slot> |  <show> | <minimize> | <intersection0> | <subtract0> | <equal0> | <exchange0> | <copy0> | <setup>\n"
 "bcl2slot      := { \"cmd\":\"bcl2slot\", <bx>, \"slot\":<slnr> } Copy the given input <bx> into a slot with number <slnr>\n"
-"show          := { \"cmd\":\"show\", <bxs>  }                  Show the content of <bxs> \n"
+"show          := { \"cmd\":\"show\", <bxs>  }                  Show the content of <bxs>\n"
+"minimize      := { \"cmd\":\"minimize\", \"slot\":<slnr>  }    Minimize the content of the specified slot\n"
 "intersection0 := { \"cmd\":\"intersection0\", <bxs>, <l> }     Intersection of slot 0 and <bxs>, result in slot 0.\n"
 "subtract0     := { \"cmd\":\"subtract0\", <bxs>, <l> }         Subtract <bxs> from slot 0, result in slot 0\n"
 "equal0        := { \"cmd\":\"equal0\", <bxs>, <l>] }           Compare slot 0 with <bxs>, output result under the given label\n"

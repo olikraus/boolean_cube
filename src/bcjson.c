@@ -300,6 +300,11 @@ co bc_ExecuteVector(cco in)
           l = NULL;
         }
       }
+      else if ( p != NULL &&  strcmp(cmd, "minimize") == 0 )
+      {
+        assert(arg != NULL);
+        bcp_MinimizeBCL(p, arg);
+      }
       // "show"  "bcl" or "show" bcl from "slot"
       else if ( p != NULL &&  strcmp(cmd, "show") == 0 )
       {

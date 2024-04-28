@@ -250,7 +250,7 @@ void bcp_DoBCLExpandWithCofactor(bcp p, bcl l);
 
 /* bclminimize.c */
 
-void bcp_MinimizeBCL(bcp p, bcl l);
+void bcp_MinimizeBCL(bcp p, bcl l);                             // minimize l
 void bcp_MinimizeBCLWithOnSet(bcp p, bcl l);
 
 /* bcexpression.c */
