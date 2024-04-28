@@ -8,6 +8,11 @@
     "label0":"reduced",
     "cmd":"minimize",
     "slot":0
+  },
+  {
+    "label0":"complement",
+    "cmd":"complement",
+    "slot":0
   }
 ]
 

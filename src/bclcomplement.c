@@ -56,6 +56,16 @@ bcl bcp_NewBCLComplement(bcp p, bcl l)
   return bcp_NewBCLComplementWithSubtract(p, l);
 }
 
+int bcp_ComplementBCL(bcp p, bcl l)
+{
+  bcl ll = bcp_NewBCLComplement(p, l);
+  if ( ll == NULL )
+    return 0;
+  if ( bcp_CopyBCL(p, l, ll) == 0 )
+    return bcp_DeleteBCL(p, ll), 0;  
+  return bcp_DeleteBCL(p, ll), 1;
+}
+
 
 
 /*

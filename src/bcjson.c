@@ -305,6 +305,11 @@ co bc_ExecuteVector(cco in)
         assert(arg != NULL);
         bcp_MinimizeBCL(p, arg);
       }
+      else if ( p != NULL &&  strcmp(cmd, "complement") == 0 )
+      {
+        assert(arg != NULL);
+        bcp_ComplementBCL(p, arg);
+      }
       // "show"  "bcl" or "show" bcl from "slot"
       else if ( p != NULL &&  strcmp(cmd, "show") == 0 )
       {
@@ -410,14 +415,15 @@ co bc_ExecuteVector(cco in)
     
   } // for all cmd maps
   
-
+  
   {
     co e = coNewMap(CO_STRDUP|CO_STRFREE|CO_FREE_VALS);
     assert( e != NULL );
-    coMapAdd(e, "vmap", coClone(p->var_map));
+    coMapAdd(e, "vmap", coClone(p->var_map));   // memory leak !!!
     coMapAdd(e, "vlist", coClone(p->var_list));
     coMapAdd(output, "", e);
-}
+  }
+  
   
   // Memory cleanup
   

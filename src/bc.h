@@ -227,6 +227,7 @@ int bcp_SubtractBCL(bcp p, bcl a, bcl b, int is_mcc);  // if is_mcc is 0, then t
 bcl bcp_NewBCLComplementWithSubtract(bcp p, bcl l);  // faster than with cofactor
 bcl bcp_NewBCLComplementWithCofactor(bcp p, bcl l); // slow!
 bcl bcp_NewBCLComplement(bcp p, bcl l);         // calls bcp_NewBCLComplementWithSubtract();
+int bcp_ComplementBCL(bcp p, bcl l);            // in place complement calculation
 
 
 /* bclsubset.c */
