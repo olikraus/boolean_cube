@@ -132,6 +132,38 @@ co bc_ExecuteVector(cco in)
     cco cmdmap = coVectorGet(in, i);
     if ( coIsMap(cmdmap) )
     {
+      o = coMapGet(cmdmap, "xend");
+      if (coIsStr(o))
+      {
+        if ( p == NULL ) { p = bcp_New(0); assert( p != NULL ); }
+        if ( strlen(coStrGet(o)) > 0 )
+          p->x_end = coStrGet(o)[0];
+      }
+
+      o = coMapGet(cmdmap, "xand");
+      if (coIsStr(o))
+      {
+        if ( p == NULL ) { p = bcp_New(0); assert( p != NULL ); }
+        if ( strlen(coStrGet(o)) > 0 )
+          p->x_and = coStrGet(o)[0];
+      }
+
+      o = coMapGet(cmdmap, "xor");
+      if (coIsStr(o))
+      {
+        if ( p == NULL ) { p = bcp_New(0); assert( p != NULL ); }
+        if ( strlen(coStrGet(o)) > 0 )
+          p->x_or = coStrGet(o)[0];
+      }
+
+      o = coMapGet(cmdmap, "xnot");
+      if (coIsStr(o) && p != NULL )
+      {
+        if ( p == NULL ) { p = bcp_New(0); assert( p != NULL ); }
+        if ( strlen(coStrGet(o)) > 0 )
+          p->x_not = coStrGet(o)[0];
+      }
+        
       o = coMapGet(cmdmap, "expr");             // "expr" is an alternative way to describe a bcl
       if (coIsStr(o))                     // only of the expr is a string and only of the bcl has not been assigned before
       {
@@ -160,7 +192,7 @@ co bc_ExecuteVector(cco in)
   for( i = 0; i < cnt; i++ )
   {
     cco cmdmap = coVectorGet(in, i);
-    cmd = NULL;
+    cmd = "";
     label = NULL;
     label0 = NULL;
     slot = 0;
@@ -172,7 +204,8 @@ co bc_ExecuteVector(cco in)
     {
       
       // STEP 1: Read the member variables from a cmd block: "cmd", "slot", "bcl"
-      
+
+        
       o = coMapGet(cmdmap, "cmd");
       if (coIsStr(o))
         cmd = coStrGet(o);
@@ -376,8 +409,8 @@ co bc_ExecuteVector(cco in)
   {
     co e = coNewMap(CO_STRDUP|CO_STRFREE|CO_FREE_VALS);
     assert( e != NULL );
-    coMapAdd(e, "var_map", coClone(p->var_map));
-    coMapAdd(e, "var_list", coClone(p->var_list));
+    coMapAdd(e, "vmap", coClone(p->var_map));
+    coMapAdd(e, "vlist", coClone(p->var_list));
     coMapAdd(output, "", e);
 }
   

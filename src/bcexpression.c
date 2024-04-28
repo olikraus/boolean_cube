@@ -174,7 +174,7 @@ bcx bcp_ParseAtom(bcp p, const char **s)
   static char msg[32];
   bcx x;
 
-  if ( **s == '\0' )    // this is reached if the string is full empty
+  if ( **s == '\0' || **s == p->x_end )    // this is reached if the string is full empty
   {
     return bcp_NewBCXValue(p, 0);       // return 0 value if the string is (unexpectedly) empty
   }

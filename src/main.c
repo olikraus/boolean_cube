@@ -271,7 +271,7 @@ int bc_ExecuteParse(const char *s)
 
 const char *json_input_spec = 
 "JSON Input    := [ <block> ]\n"
-"block         := <bcl2slot> |  <show> | <intersection0> | <subtract0> | <equal0> | <exchange0> | <copy0>\n"
+"block         := <bcl2slot> |  <show> | <intersection0> | <subtract0> | <equal0> | <exchange0> | <copy0> | <setup>\n"
 "bcl2slot      := { \"cmd\":\"bcl2slot\", <bx>, \"slot\":<slnr> } Copy the given input <bx> into a slot with number <slnr>\n"
 "show          := { \"cmd\":\"show\", <bxs>  }                  Show the content of <bxs> \n"
 "intersection0 := { \"cmd\":\"intersection0\", <bxs>, <l> }     Intersection of slot 0 and <bxs>, result in slot 0.\n"
@@ -279,6 +279,7 @@ const char *json_input_spec =
 "equal0        := { \"cmd\":\"equal0\", <bxs>, <l>] }           Compare slot 0 with <bxs>, output result under the given label\n"
 "exchange0     := { \"cmd\":\"exchange0\", \"slot\":<slnr>] }     Exchange slot 0 with slot <slnr>\n"
 "copy0         := { \"cmd\":\"copy0\", \"slot\":<slnr>] }         Copy slot 0 to slot <slnr>\n"
+"setup         := { \"xend\":\";\", \"xand\":\"&\", \"xor\":\"|\", \"xnot\":\"-\" }      Redefine operators for the expression parser\n"  
 "l             := \"label\":<key> | \"label0\":<key>            Output result flags (and slot 0 content) to the output JSON map\n"
 "key           := Any ASCII String                          Use this <key> as a key of the generated output JSON map\n" 
 "bx            := \"bcl\":<bclsv> | \"expr\":<exprstr>\n"
@@ -300,6 +301,8 @@ const char *json_output_spec =
 "superset    := \"superset\":<integer>     1 if slot 0 is superset of/equal <bxs> for <equal0> cmd\n"
 "bcl         := \"bcl\":<bclvec>           Content of slot 0 as a binary cube list\n"
 "expr        := \"expr\":<expr>            Content of slot 0 as a binary expression\n"
+"The JSON output contains a special <rblk> with the variable definition:\n"
+"\"\":{ \"vmap\":<map with variables>, \"vlist\":<vector with variables> }\n"
 ;
 
 
