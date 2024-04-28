@@ -274,8 +274,9 @@ const char *json_input_spec =
 "block         := <bcl2slot> |  <show> | <minimize> | <intersection0> | <subtract0> | <equal0> | <exchange0> | <copy0> | <setup>\n"
 "bcl2slot      := { \"cmd\":\"bcl2slot\", <bx>, \"slot\":<slnr> } Copy the given input <bx> into a slot with number <slnr>\n"
 "show          := { \"cmd\":\"show\", <bxs>  }                  Show the content of <bxs>\n"
-"minimize      := { \"cmd\":\"minimize\", \"slot\":<slnr>  }    Minimize the content of the specified slot\n"
-"intersection0 := { \"cmd\":\"intersection0\", <bxs>, <l> }     Intersection of slot 0 and <bxs>, result in slot 0.\n"
+"minimize      := { \"cmd\":\"minimize\", \"slot\":<slnr>  }      Minimize the content of the specified slot\n"
+"intersection0 := { \"cmd\":\"intersection0\", <bxs>, <l> }     Intersection ('AND') of slot 0 and <bxs>, result in slot 0.\n"
+"union0        := { \"cmd\":\"union0\", <bxs>, <l> }            Union ('OR') of slot 0 and <bxs>, result in slot 0.\n"
 "subtract0     := { \"cmd\":\"subtract0\", <bxs>, <l> }         Subtract <bxs> from slot 0, result in slot 0\n"
 "equal0        := { \"cmd\":\"equal0\", <bxs>, <l>] }           Compare slot 0 with <bxs>, output result under the given label\n"
 "exchange0     := { \"cmd\":\"exchange0\", \"slot\":<slnr>] }     Exchange slot 0 with slot <slnr>\n"
@@ -373,6 +374,7 @@ int main(int argc, char **argv)
       if ( (*argv) == NULL )
         return puts("JSON filename missing"), 1;
       bc_ExecuteJSONFile(*argv, json_output_filename, isCompactJSONOutput);
+      times(&end);
       printf("\nuser time: %lld\n", (long long int)(end.tms_utime-start.tms_utime));
       argv++;
     }
@@ -382,6 +384,7 @@ int main(int argc, char **argv)
       if ( (*argv) == NULL )
         return puts("DIMACS CNF filename missing"), 1;
       bc_ExecuteDIMACSCNF(*argv);
+      times(&end);
       printf("\nuser time: %lld\n", (long long int)(end.tms_utime-start.tms_utime));
       argv++;
     }

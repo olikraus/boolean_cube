@@ -55,6 +55,12 @@
         { "cmd":"show", "slot":0 }
       This command is for debugging only, use label/label0 for proper output
 
+    minimize
+        { "cmd":"minimize", "slot":<int> }
+    
+    complement
+        { "cmd":"complement", "slot":<int> }
+
     intersection0
       Calculate intersection and store the result in slot 0
       This operation will set the "empty" flag.
@@ -62,6 +68,9 @@
         { "cmd":"intersection0", "bcl":"11-0" }
       if slot is present, then calculate intersection between slot 0 and the provided slot
         { "cmd":"intersection0", "slot":1 }
+    
+    union0
+      Calculate union and store the result in slot 0
     
     subtract0
       Subtract a bcl/expr/slot from slot 0 and store the result in slot 0
@@ -91,6 +100,7 @@
 #include "co.h"
 #include "bc.h"
 #include <string.h>
+#include <sys/times.h>
 #include <assert.h>
 
 #define SLOT_CNT 10
@@ -100,6 +110,7 @@
 */
 co bc_ExecuteVector(cco in)
 {
+  struct tms start, end;
   bcp p = NULL;
   bcl slot_list[SLOT_CNT];
   int var_cnt = -1;
@@ -120,7 +131,10 @@ co bc_ExecuteVector(cco in)
   co output = coNewMap(CO_STRDUP|CO_STRFREE|CO_FREE_VALS);
   
   assert( output != NULL );
-  
+
+  times(&start);
+
+
   for( i = 0; i < SLOT_CNT; i++ )
     slot_list[i] = NULL;
   
@@ -330,6 +344,13 @@ co bc_ExecuteVector(cco in)
         if ( slot_list[0]->cnt == 0 )
           is_empty = 1;
       }
+      else if ( p != NULL &&  strcmp(cmd, "union0") == 0 )
+      {
+        assert(slot_list[0] != NULL);
+        assert(arg != NULL);
+        bcp_AddBCLCubesByBCL(p, slot_list[0], arg);   // a = a union b 
+        bcp_DoBCLSingleCubeContainment(p, slot_list[0]);        
+      }
       else if ( p != NULL &&  strcmp(cmd, "subtract0") == 0 )
       {
         int subtract_result;
@@ -417,10 +438,12 @@ co bc_ExecuteVector(cco in)
   
   
   {
+    times(&end);
     co e = coNewMap(CO_STRDUP|CO_STRFREE|CO_FREE_VALS);
     assert( e != NULL );
     coMapAdd(e, "vmap", coClone(p->var_map));   // memory leak !!!
     coMapAdd(e, "vlist", coClone(p->var_list));
+    coMapAdd(e, "time", coNewDbl((double)(end.tms_utime-start.tms_utime)));
     coMapAdd(output, "", e);
   }
   
