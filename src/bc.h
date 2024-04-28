@@ -279,7 +279,7 @@ char *bcp_GetExpressionBCL(bcp p, bcl l);       // convert "l" to a human readab
 
 /* bcjson.c */
 
-int bc_ExecuteJSON(FILE *fp);
+int bc_ExecuteJSON(FILE *in_fp, FILE *out_fp, int isCompactJSONOutput);
 
 
 

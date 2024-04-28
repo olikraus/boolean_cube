@@ -93,9 +93,12 @@
 #include <string.h>
 #include <assert.h>
 
-#define SLOT_CNT 9
+#define SLOT_CNT 10
 
-int bc_ExecuteVector(cco in)
+/*
+  takes a JSON input (as co object) and produces a JSON output (again as co object)
+*/
+co bc_ExecuteVector(cco in)
 {
   bcp p = NULL;
   bcl slot_list[SLOT_CNT];
@@ -268,6 +271,7 @@ int bc_ExecuteVector(cco in)
       else if ( p != NULL &&  strcmp(cmd, "show") == 0 )
       {
         assert(arg != NULL);
+        printf("cmd=%s label=%s label0=%s\n", cmd, label, label0);
         bcp_ShowBCL(p, arg);
       }
       // intersection0: calculate intersection with slot 0
@@ -300,6 +304,9 @@ int bc_ExecuteVector(cco in)
         assert(arg != NULL);
         is_0_superset = bcp_IsBCLSubset(p, slot_list[0], arg);       //   test, whether "arg" is a subset of "slot_list[0]": 1 if slot_list[0] is a superset of "arg"
         is_0_subset = bcp_IsBCLSubset(p, arg, slot_list[0]);
+        is_empty = 0;
+        if ( slot_list[0]->cnt == 0 )
+          is_empty = 1;
       }
       else if ( p != NULL &&  strcmp(cmd, "exchange0") == 0 )
       {
@@ -365,6 +372,15 @@ int bc_ExecuteVector(cco in)
     
   } // for all cmd maps
   
+
+  {
+    co e = coNewMap(CO_STRDUP|CO_STRFREE|CO_FREE_VALS);
+    assert( e != NULL );
+    coMapAdd(e, "var_map", coClone(p->var_map));
+    coMapAdd(e, "var_list", coClone(p->var_list));
+    coMapAdd(output, "", e);
+}
+  
   // Memory cleanup
   
   for( i = 0; i < SLOT_CNT; i++ )
@@ -376,18 +392,19 @@ int bc_ExecuteVector(cco in)
 
   bcp_Delete(p);
   
-  coWriteJSON(output, 0, 1, stdout); // isUTF8 is 0, then output char codes >=128 via \u 
-  coDelete(output);
-  
-  return 1;
+  return output;
 }
 
-int bc_ExecuteJSON(FILE *fp)
+int bc_ExecuteJSON(FILE *in_fp, FILE *out_fp, int isCompactJSONOutput)
 {
-  co in = coReadJSONByFP(fp);
+  co in = coReadJSONByFP(in_fp);
+  co out;
   if ( in == NULL )
     return puts("JSON read errror"), 0;
-  bc_ExecuteVector(in);
+  out = bc_ExecuteVector(in);
+  // coWriteJSON(cco o, int isCompact, int isUTF8, FILE *fp); // isUTF8 is 0, then output char codes >=128 via \u 
+  coWriteJSON(out, isCompactJSONOutput, 1, out_fp); // isUTF8 is 0, then output char codes >=128 via \u 
+  coDelete(out);
   coDelete(in);
   return 1;
 }
