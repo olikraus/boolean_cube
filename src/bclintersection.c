@@ -33,7 +33,6 @@ int bcp_IntersectionBCLs(bcp p, bcl result, bcl a, bcl b)
   bcp_ClearBCL(p, result);
   for( i = 0; i < b->cnt; i++ )
   {
-    bcp_ClearBCL(p, result);
     for( j = 0; j < a->cnt; j++ )
     {
       if ( bcp_IntersectionCube(p, tmp, bcp_GetBCLCube(p, a, j), bcp_GetBCLCube(p, b, i)) )

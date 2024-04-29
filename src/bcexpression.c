@@ -431,6 +431,9 @@ bcx bcp_Parse(bcp p, const char *s, int is_not_propagation)
   bcp_skip_space(p, t);    
   // convert the given textual expression into an abstract syntax tree
   x = bcp_ParseOR(p, t);
+
+  // bcp_ShowBCX(p, x);puts("");
+  // bcp_PrintBCX(p, x);puts("");
   
   // add all variables from the expression to problem record
   if ( bcp_AddVarsFromBCX(p, x) == 0 )
@@ -561,14 +564,26 @@ bcl bcp_NewBCLByBCX(bcp p, bcx x)
           return bcp_NewBCL(p); // empty list
       return bcp_NewBCLWithCube(p, 3);  // tautology list
     case BCX_TYPE_AND:
+      //bcp_ShowBCX(p, x);
+      //puts(" AND");
       x = x->down;
       l = bcp_NewBCLByBCX(p, x);
+      //bcp_ShowBCX(p, x);
+      //puts(" AND");
+      //bcp_ShowBCL(p, l);
+    
       x = x->next;
       while( x != NULL )
       {
         bcl ll = bcp_NewBCLByBCX(p, x);
         assert( ll != NULL );
+        //bcp_ShowBCX(p, x);
+        //puts(" AND");
+        //bcp_ShowBCL(p, ll);
+        
         bcp_IntersectionBCL(p, l, ll);
+        //puts("-->");
+        //bcp_ShowBCL(p, l);
         bcp_DeleteBCL(p, ll);
         x = x->next;
       }
