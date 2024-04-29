@@ -305,7 +305,7 @@ const char *json_output_spec =
 "bcl         := \"bcl\":<bclvec>           Content of slot 0 as a binary cube list\n"
 "expr        := \"expr\":<expr>            Content of slot 0 as a binary expression\n"
 "The JSON output contains a special <rblk> with the variable definition:\n"
-"\"\":{ \"vmap\":<map with variables>, \"vlist\":<vector with variables> }\n"
+"\"\":{ \"vmap\":<map with variables>, \"vlist\":<vector with variables>, \"time\":<time in milliseconds> }\n"
 ;
 
 
