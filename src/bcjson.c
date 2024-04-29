@@ -419,7 +419,7 @@ co bc_ExecuteVector(cco in)
         }
 
         end = clock();
-        coMapAdd(e, "time", coNewDbl((double)(end-bstart)/CLOCKS_PER_SEC));
+        coMapAdd(e, "time", coNewDbl((double)((end-bstart)*1000.0)/CLOCKS_PER_SEC));
         
         if ( label0 != NULL && slot_list[0] != NULL )
         {
@@ -451,7 +451,7 @@ co bc_ExecuteVector(cco in)
     coMapAdd(e, "vmap", coClone(p->var_map));   // memory leak !!!
     coMapAdd(e, "vlist", coClone(p->var_list));
     //coMapAdd(e, "time", coNewDbl((double)(end.tms_utime-start.tms_utime)));
-    coMapAdd(e, "time", coNewDbl((double)(end-start)/CLOCKS_PER_SEC));
+    coMapAdd(e, "time", coNewDbl((double)((end-start)*1000.0)/CLOCKS_PER_SEC));
     coMapAdd(output, "", e);
   }
   
