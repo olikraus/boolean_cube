@@ -16,7 +16,8 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/times.h>
+//#include <sys/times.h>
+#include <time.h>
 
 /*============================================================*/
 
@@ -328,10 +329,10 @@ int isCompactJSONOutput = 1;
 
 int main(int argc, char **argv)
 {
-  struct tms start, end;
+  //struct tms start, end;
   if ( *argv == NULL )
       return 0;
-  times(&start);
+  //times(&start);
   argv++;    // skip program name
   if ( (*argv) == NULL )
   {
@@ -374,8 +375,8 @@ int main(int argc, char **argv)
       if ( (*argv) == NULL )
         return puts("JSON filename missing"), 1;
       bc_ExecuteJSONFile(*argv, json_output_filename, isCompactJSONOutput);
-      times(&end);
-      printf("\nuser time: %lld\n", (long long int)(end.tms_utime-start.tms_utime));
+      //times(&end);
+      //printf("\nuser time: %lld\n", (long long int)(end.tms_utime-start.tms_utime));
       argv++;
     }
     else if ( strcmp(*argv, "-dimacscnf") == 0 )
@@ -384,8 +385,8 @@ int main(int argc, char **argv)
       if ( (*argv) == NULL )
         return puts("DIMACS CNF filename missing"), 1;
       bc_ExecuteDIMACSCNF(*argv);
-      times(&end);
-      printf("\nuser time: %lld\n", (long long int)(end.tms_utime-start.tms_utime));
+      //times(&end);
+      //printf("\nuser time: %lld\n", (long long int)(end.tms_utime-start.tms_utime));
       argv++;
     }
     else if ( strcmp(*argv, "-parse") == 0 )
@@ -403,7 +404,7 @@ int main(int argc, char **argv)
     }
       
   }
-  times(&end);
+  //times(&end);
   return 0;
 }
 

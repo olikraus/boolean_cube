@@ -100,7 +100,8 @@
 #include "co.h"
 #include "bc.h"
 #include <string.h>
-#include <sys/times.h>
+//#include <sys/times.h>
+#include <time.h>
 #include <assert.h>
 
 #define SLOT_CNT 10
@@ -110,7 +111,8 @@
 */
 co bc_ExecuteVector(cco in)
 {
-  struct tms start, end;
+  // struct tms start, end;
+  clock_t start, bstart, end;
   bcp p = NULL;
   bcl slot_list[SLOT_CNT];
   int var_cnt = -1;
@@ -132,8 +134,8 @@ co bc_ExecuteVector(cco in)
   
   assert( output != NULL );
 
-  times(&start);
-
+  //times(&start);
+  start = clock();
 
   for( i = 0; i < SLOT_CNT; i++ )
     slot_list[i] = NULL;
@@ -206,6 +208,7 @@ co bc_ExecuteVector(cco in)
   for( i = 0; i < cnt; i++ )
   {
     cco cmdmap = coVectorGet(in, i);
+    bstart = clock();
     cmd = "";
     label = NULL;
     label0 = NULL;
@@ -414,6 +417,9 @@ co bc_ExecuteVector(cco in)
         {
           coMapAdd(e, "subset", coNewDbl(is_0_subset));          
         }
+
+        end = clock();
+        coMapAdd(e, "time", coNewDbl((double)(end-bstart)/CLOCKS_PER_SEC));
         
         if ( label0 != NULL && slot_list[0] != NULL )
         {
@@ -438,12 +444,14 @@ co bc_ExecuteVector(cco in)
   
   
   {
-    times(&end);
+    // times(&end);
+    end = clock();
     co e = coNewMap(CO_STRDUP|CO_STRFREE|CO_FREE_VALS);
     assert( e != NULL );
     coMapAdd(e, "vmap", coClone(p->var_map));   // memory leak !!!
     coMapAdd(e, "vlist", coClone(p->var_list));
-    coMapAdd(e, "time", coNewDbl((double)(end.tms_utime-start.tms_utime)));
+    //coMapAdd(e, "time", coNewDbl((double)(end.tms_utime-start.tms_utime)));
+    coMapAdd(e, "time", coNewDbl((double)(end-start)/CLOCKS_PER_SEC));
     coMapAdd(output, "", e);
   }
   
