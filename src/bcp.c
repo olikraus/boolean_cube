@@ -100,6 +100,8 @@ bcp bcp_New(size_t var_cnt)
       p->var_map = NULL;
       p->var_list = NULL;
 
+      p->x_true = '1';
+      p->x_false = '0';
       p->x_end = '.';
       p->x_not = '-';
       p->x_or = '|';

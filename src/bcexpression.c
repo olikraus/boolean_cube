@@ -120,7 +120,8 @@ const char *bcp_get_identifier(bcp p, const char **s)
   static char identifier[BCP_IDENTIFIER_MAX];
   int i = 0;
   identifier[0] = '\0';
-  if ( isalpha(**s) || **s == '_' )
+  //if ( isalpha(**s) || **s == '_' )
+  if ( isalnum(**s) || **s == '_' )
   {
     for(;;)
     {
@@ -195,11 +196,20 @@ bcx bcp_ParseAtom(bcp p, const char **s)
     bcp_skip_space(p, s);
     return x;
   }
-  else if ( isdigit(**s) )
+  else if ( **s == p->x_false )
   {
-    return bcp_NewBCXValue(p, bcp_get_value(p, s));
+    return bcp_NewBCXValue(p, 0);
   }
-  else if ( isalpha(**s) || **s == '_' )
+  else if ( **s == p->x_true )
+  {
+    return bcp_NewBCXValue(p, 1);
+  }
+  //else if ( isdigit(**s) )
+  //{
+  //  return bcp_NewBCXValue(p, bcp_get_value(p, s));
+  //}
+  //else if ( isalpha(**s) || **s == '_' )
+  else if ( isalnum(**s) || **s == '_' )
   {
     return bcp_NewBCXIdentifier(p, bcp_get_identifier(p, s) );
   }

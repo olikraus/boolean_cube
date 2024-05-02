@@ -68,6 +68,8 @@ struct bcp_struct
   int stack_depth;
   bcl global_cube_list;    // storage area for temp cubes
   
+  int x_true;           // symbol for true --> '1'
+  int x_false;           // symbol for false --> '0'
   int x_end;
   int x_not;
   int x_and;
