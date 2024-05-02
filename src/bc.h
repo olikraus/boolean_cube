@@ -275,6 +275,8 @@ bcx bcp_Parse(bcp p, const char *s, int is_not_propagation);
 void bcp_ShowBCX(bcp p, bcx x);
 void bcp_PrintBCX(bcp p, bcx x);
 
+bcl bcp_NewBCLMinTermByVarList(bcp p, const char *s);   // blank separated list of var names, "1" if var exists, "0" if not, returns bcl with exactly one cube (=minterm)
+
 bcl bcp_NewBCLByBCX(bcp p, bcx x);
 
 char *bcp_GetExpressionBCL(bcp p, bcl l);       // convert "l" to a human readable expression, return value must be free'd if not NULL

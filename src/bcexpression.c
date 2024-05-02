@@ -525,6 +525,56 @@ void bcp_PrintBCX(bcp p, bcx x)
 
 /*============================================================*/
 
+
+bcl bcp_NewBCLMinTermByVarList(bcp p, const char *s)    
+{
+  const char **t = &s;
+  const char *var;
+  int cube_pos;
+  int var_pos;
+  cco var_pos_co;
+  bcl l;
+  
+  bcp_skip_space(p, t);
+  l = bcp_NewBCL(p);
+  if ( l != NULL )
+  {
+    cube_pos = bcp_AddBCLCube(p, l);
+    if ( cube_pos >= 0 )
+    {
+      bcp_CopyGlobalCube(p, bcp_GetBCLCube(p, l, cube_pos), 1); // all zero
+      for(;;)
+      {
+        if ( **t == '\0' )
+          break;
+        var = bcp_get_identifier(p, t);
+        if ( var == NULL )
+          break;
+        if ( var[0] == '\0' )
+          break;
+
+        var_pos_co = coMapGet(p->var_map, var);
+        if ( var_pos_co != NULL )
+        {
+          assert( coIsDbl(var_pos_co) );
+          var_pos = (int)coDblGet(var_pos_co);
+          assert( var_pos < p->var_cnt ); // check whether bcp_UpdateFromBCX() was called
+          bcp_SetCubeVar(p, bcp_GetBCLCube(p, l, cube_pos), var_pos, 2);
+        }
+      }
+    }
+    else
+    {
+      bcp_DeleteBCL(p, l);
+      l = NULL;
+    }
+  }
+  return l;
+}
+
+
+/*============================================================*/
+
 bcl bcp_NewBCLById(bcp p, int is_not, const char *identifier)
 {
   bcl l;

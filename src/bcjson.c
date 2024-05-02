@@ -306,7 +306,7 @@ co bc_ExecuteVector(cco in)
       } // bcl is vector
 
       o = coMapGet(cmdmap, "expr");             // "expr" is an alternative way to describe a bcl
-      if (coIsStr(o) && l == NULL )                     // only of the expr is a string and only of the bcl has not been assigned before
+      if (coIsStr(o) && l == NULL )                     // only if the expr is a string and only of the bcl has not been assigned before
       {
         const char *expr_str = coStrGet(o);        
         //printf("expr: %s\n", expr_str);
@@ -317,6 +317,13 @@ co bc_ExecuteVector(cco in)
             bcp_DeleteBCX(p, x);                      // free the expression tree
         }
       }
+      
+      o = coMapGet(cmdmap, "mtvar");             // "mtvar" is another alternative way to describe a bcl: a single minterm with a "1" for each existing variable and "0" otherwise
+      if (coIsStr(o) && l == NULL )                     // only if mtvar is a string 
+      {
+        l = bcp_NewBCLMinTermByVarList(p, coStrGet(o));
+      }
+      
 
       // STEP 2: Execute the command
       

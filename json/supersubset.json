@@ -1,0 +1,29 @@
+[
+  {
+    "cmd":"bcl2slot",
+    "expr":"(a&b&c&d)",
+    "slot":0
+  },
+  {
+    "label0":"e1",
+    "cmd":"equal0",
+    "expr":"a&c&d"
+  },
+  {
+    "label0":"e11",
+    "cmd":"equal0",
+    "mtvar":"a c d"
+  },
+  {
+    "label0":"e12",
+    "cmd":"equal0",
+    "mtvar":"a b c d"
+  },
+  {
+    "label0":"e2",
+    "cmd":"equal0",
+    "expr":"a&b&c&d&e"
+  }
+]
+
+
