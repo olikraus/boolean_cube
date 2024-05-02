@@ -130,6 +130,7 @@ co bc_ExecuteVector(cco in)
   int is_empty = -1;
   int is_0_superset = -1;
   int is_0_subset = -1;
+  int is_out_arg = 0;
   co output = coNewMap(CO_STRDUP|CO_STRFREE|CO_FREE_VALS);
   
   assert( output != NULL );
@@ -228,6 +229,7 @@ co bc_ExecuteVector(cco in)
     label0 = NULL;
     slot = 0;
     is_empty = -1;
+    is_out_arg = 0;
     if ( l != NULL )
       bcp_DeleteBCL(p, l);
     l = NULL;
@@ -388,6 +390,7 @@ co bc_ExecuteVector(cco in)
         is_empty = 0;
         if ( slot_list[0]->cnt == 0 )
           is_empty = 1;
+        is_out_arg = 1;         // this will output "arg" if label0 is used
       }
       else if ( p != NULL &&  strcmp(cmd, "exchange0") == 0 )
       {
@@ -444,9 +447,21 @@ co bc_ExecuteVector(cco in)
             coVectorAdd( v, coNewStr(CO_STRDUP, bcp_GetStringFromCube(p, bcp_GetBCLCube(p, slot_list[0], j))));
           }
           coMapAdd(e, "bcl", v);
+          
+          v = coNewVector(CO_FREE_VALS);
+          for( j = 0; j <  arg->cnt; j++ )
+          {
+            coVectorAdd( v, coNewStr(CO_STRDUP, bcp_GetStringFromCube(p, bcp_GetBCLCube(p, arg, j))));
+          }
+          coMapAdd(e, "abcl", v);          
+          
           if ( p->x_var_cnt == p->var_cnt )
           {
             coMapAdd(e, "expr", coNewStr(CO_STRFREE, bcp_GetExpressionBCL(p, slot_list[0])));
+            if ( is_out_arg )
+            {
+              coMapAdd(e, "aexpr", coNewStr(CO_STRFREE, bcp_GetExpressionBCL(p, arg)));
+            }
           }
         }
         
