@@ -676,12 +676,16 @@ int str_extend_and_append_cube(char **s, size_t *len, size_t *max, bcp p, bc c)
   int value;
   char not_str[2];
   char and_str[2];
+  char true_str[2];
   int is_first = 1;
   
   not_str[0] = p->x_not;
   not_str[1] = '\0';
   and_str[0] = p->x_and;
-  and_str[1] = '\0';  
+  and_str[1] = '\0';
+  true_str[0] = p->x_true;
+  true_str[1] = '\0';
+  
   
   for( i = 0; i < var_cnt; i++ )
   {
@@ -703,7 +707,7 @@ int str_extend_and_append_cube(char **s, size_t *len, size_t *max, bcp p, bc c)
     }
   }
   if ( is_first )
-    if ( str_extend_and_append(s, len, max, "1") == 0 )
+    if ( str_extend_and_append(s, len, max, true_str) == 0 )
       return 0;
   return 1;
 }

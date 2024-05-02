@@ -4,12 +4,50 @@
     "xand":"*",
     "xor":"+",
     "xnot":"!"
+    "xtrue":"t"
+    "xfalse":"f"
   },
   {
     "cmd":"bcl2slot",
     "expr":"a+b*!c.",
     "slot":0,
-    "label0":"result"
+    "label0":"r1"
+  },
+  {
+    "cmd":"bcl2slot",
+    "expr":"t",
+    "slot":0,
+    "label0":"rtrue"
+  },
+  {
+    "cmd":"bcl2slot",
+    "expr":"a+t",
+    "slot":0,
+    "label0":"r2"
+  },
+  {
+    "cmd":"bcl2slot",
+    "expr":"a*t",
+    "slot":0,
+    "label0":"r3"
+  },
+  {
+    "cmd":"bcl2slot",
+    "expr":"a+f",
+    "slot":0,
+    "label0":"r4"
+  },
+  {
+    "cmd":"bcl2slot",
+    "expr":"a*f",
+    "slot":0,
+    "label0":"r5"
+  },
+  {
+    "cmd":"bcl2slot",
+    "expr":"f",
+    "slot":0,
+    "label0":"rfalse"
   }
 ]
 
