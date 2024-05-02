@@ -448,12 +448,15 @@ co bc_ExecuteVector(cco in)
           }
           coMapAdd(e, "bcl", v);
           
-          v = coNewVector(CO_FREE_VALS);
-          for( j = 0; j <  arg->cnt; j++ )
+          if ( is_out_arg )
           {
-            coVectorAdd( v, coNewStr(CO_STRDUP, bcp_GetStringFromCube(p, bcp_GetBCLCube(p, arg, j))));
+            v = coNewVector(CO_FREE_VALS);
+            for( j = 0; j <  arg->cnt; j++ )
+            {
+              coVectorAdd( v, coNewStr(CO_STRDUP, bcp_GetStringFromCube(p, bcp_GetBCLCube(p, arg, j))));
+            }
+            coMapAdd(e, "abcl", v);          
           }
-          coMapAdd(e, "abcl", v);          
           
           if ( p->x_var_cnt == p->var_cnt )
           {
