@@ -359,6 +359,7 @@ co bc_ExecuteVector(cco in)
             bcp_DeleteBCL(p, slot_list[slot]);
           slot_list[slot] = l;
           l = NULL;
+		  is_out_arg = 1;         // this will output "arg" if label0 is used
         }
       }
       else if ( p != NULL &&  strcmp(cmd, "minimize") == 0 )
