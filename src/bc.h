@@ -266,7 +266,8 @@ int bcp_get_value(bcp p, const char **s);
 bcx bcp_NewBCX(bcp p);
 void bcp_DeleteBCX(bcp p, bcx x);
 
-//int bcp_AddVar(bcp p, const char *s);
+int bcp_AddVar(bcp p, const char *s);   // used in bcexpression.c but also in bcjson.c
+
 //int bcp_AddVarsFromBCX(bcp p, bcx x);
 //int bcp_BuildVarList(bcp p);
 

@@ -209,8 +209,29 @@ co bc_ExecuteVector(cco in)
         if ( x != NULL )
             bcp_DeleteBCX(p, x);                      // free the expression tree
       }
-    }
-  }
+      
+      o = coMapGet(cmdmap, "mtvar");             // "mtvar" (minterm variables) an another alternative way to describe a bcl with a single minterm
+      if (coIsStr(o))
+      {
+        const char *str = coStrGet(o);        
+        const char **t = &str;
+        const char *var;
+        bcp_skip_space(p, t);
+        for(;;)
+        {
+          if ( **t == '\0' )
+            break;
+          var = bcp_get_identifier(p, t);
+          if ( var == NULL )
+            break;
+          if ( var[0] == '\0' )
+            break;
+          bcp_AddVar(p, var);
+        } // for
+      } // if colIsStr(o)
+      
+    } // isMap
+  } // for
   
   if ( p != NULL )      // if a dummy bcp had been created, then convert that bcp to a regular bcp
   {
