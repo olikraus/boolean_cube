@@ -429,13 +429,22 @@ co bc_ExecuteVector(cco in)
         slot_list[slot] = slot_list[0];
         slot_list[0] = tmp;
       }
-      else if ( p != NULL &&  strcmp(cmd, "copy0") == 0 )
+      else if ( p != NULL && strcmp(cmd, "copy0to") == 0  )
       {
         if ( slot_list[slot] == NULL )
           slot_list[slot] = bcp_NewBCL(p);
         assert( slot_list[slot] != NULL );
+        if ( slot_list[0] == NULL )
+          slot_list[0] = bcp_NewBCL(p);
         assert( slot_list[0] != NULL );        
-        bcp_CopyBCL(p, slot_list[slot], slot_list[0]);
+        bcp_CopyBCL(p, slot_list[slot], slot_list[0]);		// copy content from slot_list[0] into slot_list[slot], return 0 for error
+      }
+      else if ( p != NULL && strcmp(cmd, "copy0from") == 0  )
+      {
+        if ( slot_list[0] == NULL )
+          slot_list[0] = bcp_NewBCL(p);
+        assert( slot_list[0] != NULL );        
+        bcp_CopyBCL(p, slot_list[0], arg);		// similar to "bcl2slot", copy content from arg into slot_list[0], return 0 for error
       }
       
 
