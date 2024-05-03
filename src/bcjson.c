@@ -385,7 +385,7 @@ co bc_ExecuteVector(cco in)
         int intersection_result;
         assert(slot_list[0] != NULL);
         assert(arg != NULL);
-        bcp_IntersectionBCL(p, slot_list[0], arg);   // a = a intersection with b 
+        intersection_result = bcp_IntersectionBCL(p, slot_list[0], arg);   // a = a intersection with b 
         assert(intersection_result != 0);
         is_empty = 0;
         if ( slot_list[0]->cnt == 0 )
