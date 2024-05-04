@@ -769,6 +769,9 @@ int str_extend_and_append_list(char **s, size_t *len, size_t *max, bcp p, bcl l)
   char or_str[2];
   or_str[0] = p->x_or;
   or_str[1] = '\0';
+
+  if ( str_extend_and_append(s, len, max, "") == 0 )
+    return 0;
   
   for( i = 0; i < l->cnt; i++ )
   {
