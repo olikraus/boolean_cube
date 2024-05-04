@@ -111,6 +111,7 @@
 */
 co bc_ExecuteVector(cco in)
 {
+  static char err[1024];
   // struct tms start, end;
   clock_t start, bstart, end;
   bcp p = NULL;
@@ -251,6 +252,7 @@ co bc_ExecuteVector(cco in)
     slot = 0;
     is_empty = -1;
     is_out_arg = 0;
+    err[0] = '\0';
     if ( l != NULL )
       bcp_DeleteBCL(p, l);
     l = NULL;
@@ -442,9 +444,22 @@ co bc_ExecuteVector(cco in)
         assert( slot_list[0] != NULL );        
         bcp_CopyBCL(p, slot_list[slot], slot_list[0]);
       }
+      else if ( cmd[0] != '\0' )
+      {
+        sprintf(err, "Unknown cmd '%s'", cmd);
+      }
       
 
       // STEP 3: Generate JSON output
+
+      if ( err[0] != '\0' )
+      {
+        co e = coNewMap(CO_STRDUP|CO_STRFREE|CO_FREE_VALS);
+        assert( e != NULL );
+        coMapAdd(e, "index", coNewDbl(i));
+        coMapAdd(e, "error", coNewStr(CO_STRFREE|CO_STRDUP, err));
+        coMapAdd(output, "error", e);
+      }
     
       if ( label != NULL || label0 != NULL )
       {
