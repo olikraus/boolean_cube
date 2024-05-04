@@ -395,6 +395,7 @@ void bcp_SetBCLAllDCToZero(bcp p, bcl l)
 {
   int i, j;
   bc c;
+  bc illegal_cube = bcp_GetBCLCube(p, p->global_cube_list, 0);
   
   //__m128i z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));
   __m128i o = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 2));
@@ -431,8 +432,10 @@ void bcp_SetBCLAllDCToZero(bcp p, bcl l)
     
     for( i = 0; i < l->cnt; i++ )
     {
+      
       c = bcp_GetBCLCube(p,l,i);
-      _mm_storeu_si128(c+j, _mm_and_si128(mask, _mm_loadu_si128(c+j)));
+      // convert the dc's (11) to zero (01), but ensure, that the unused variables stay at dc by or-ing the illegal cube 
+      _mm_storeu_si128(c+j, _mm_or_si128(_mm_and_si128(mask, _mm_loadu_si128(c+j)), _mm_loadu_si128(illegal_cube+j)) );
      }
   } 
 }

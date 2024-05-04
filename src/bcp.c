@@ -46,6 +46,15 @@ static void bcp_var_cnt_clear(bcp p)
   p->cube_to_str = NULL;
 }
 
+static void _bcp_SetCubeVar(bcp p, bc c, unsigned var_pos, unsigned value)
+{  
+  unsigned idx = var_pos/8;
+  uint16_t *ptr = (uint16_t *)c;
+  uint16_t mask = ~(3 << ((var_pos&7)*2));
+  ptr[idx] &= mask;
+  ptr[idx] |= value  << ((var_pos&7)*2);
+}
+
 
 static int bcp_var_cnt_init(bcp p, size_t var_cnt)
 {
@@ -80,6 +89,18 @@ static int bcp_var_cnt_init(bcp p, size_t var_cnt)
           memset(bcp_GetBCLCube(p, p->global_cube_list, 1), 0x55, p->bytes_per_cube_cnt);  // all vars are zero
           memset(bcp_GetBCLCube(p, p->global_cube_list, 2), 0xaa, p->bytes_per_cube_cnt);  // all vars are one
           memset(bcp_GetBCLCube(p, p->global_cube_list, 3), 0xff, p->bytes_per_cube_cnt);  // all vars are don't care
+ 
+          /* assign DC to the upper unused variables */
+  
+          for( i = var_cnt; i < p->bytes_per_cube_cnt*4; i++ )
+          {
+            _bcp_SetCubeVar(p, bcp_GetBCLCube(p, p->global_cube_list, 0), i, 3);
+            _bcp_SetCubeVar(p, bcp_GetBCLCube(p, p->global_cube_list, 1), i, 3);
+            _bcp_SetCubeVar(p, bcp_GetBCLCube(p, p->global_cube_list, 2), i, 3);
+            //_bcp_SetCubeVar(p, bcp_GetBCLCube(p, p->global_cube_list, 3), i, 3);
+          }
+
+          
           return 1;
         }
         bcp_DeleteBCL(p, p->global_cube_list);
