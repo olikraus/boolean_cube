@@ -374,3 +374,43 @@ int *bcp_GetBCLVarCntList(bcp p, bcl l)
   return vcl;
 }
 
+
+/*
+  return a cube mask with dc for those columns where all cubes are dc for this variable
+
+  Example:
+    1-10
+    --11
+    0---
+
+  shall return x-xx because second column is all dc
+
+
+*/
+void bcp_GetBCLAllDCMask(bcp p, bcl l, bc mask)
+{
+  int i, j;
+  int j, cnt = p->blk_cnt;
+  bc c;
+  __m128i r;
+  
+  bcp_CopyGlobalCube(p, mask, 3);
+  
+  for( i = 0; i < l->cnt; i++ )
+  {
+    c = bcp_GetBCLCube(p,l,i);
+    for( j = 0; j < p->blk_cnt; j++ )
+    {
+      _mm_storeu_si128(mask+j, _mm_and_si128(_mm_loadu_si128(mask+j), _mm_loadu_si128(c+j))); 
+     }
+  }
+  
+  for( j = 0; j < p->blk_cnt; j++ )
+  {    
+    r = _mm_loadu_si128(mask+j); 
+    r = _mm_and_si128( r, _mm_srai_epi16(r,1));          // r = r & (r >> 1)     this will generate x1 for DC values
+    r = _mm_and_si128(r, z);                                    // r = r & 01   this will generate 01 for DC and 00 for "10" and "01" (and also for "00")
+    r = _mm_or_si128(r, _mm_slli_epi16(r,1));          // r = r | (r<<1)
+    _mm_storeu_si128(mask+j, r);          // and store the result in the destination cube    
+  }
+}
