@@ -7,8 +7,8 @@ COPATH = ../../c-object/co
 # CFLAGS = -O4 -march=silvermont -Wall  -I../c-object/co -I.
 # CFLAGS = -g -pg -Wall
 
-# CFLAGS = -g -Wall -fsanitize=address -I$(COPATH) -I.
-CFLAGS = -g -Wall  -I$(COPATH) -I.
+CFLAGS = -g -Wall -march=silvermont -fsanitize=address -I$(COPATH) -I.
+# CFLAGS = -g -Wall -march=silvermont -I$(COPATH) -I.
 
 SRC = bcutil.c bcp.c bcube.c bclcore.c bcselftest.c bccofactor.c 
 SRC += bclcontainment.c bcltautology.c bclsubtract.c 
@@ -21,7 +21,7 @@ SRC += bcjson.c main.c
 OBJ = $(SRC:.c=.o)
 
 bcc: $(OBJ) 
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -lm -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
 clean:	
 	-rm $(OBJ) bcc

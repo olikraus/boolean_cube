@@ -376,41 +376,65 @@ int *bcp_GetBCLVarCntList(bcp p, bcl l)
 
 
 /*
-  return a cube mask with dc for those columns where all cubes are dc for this variable
+  For each column which contains only DC, replace this DC with Zero:
 
   Example:
     1-10
     --11
     0---
 
-  shall return x-xx because second column is all dc
+  Becomes:
+    1010
+    -011
+    00--
 
+  --> second column is only DC for all terms and is replaced with zero
 
 */
-void bcp_GetBCLAllDCMask(bcp p, bcl l, bc mask)
+void bcp_SetBCLAllDCToZero(bcp p, bcl l)
 {
   int i, j;
-  int j, cnt = p->blk_cnt;
   bc c;
-  __m128i r;
   
-  bcp_CopyGlobalCube(p, mask, 3);
-  
-  for( i = 0; i < l->cnt; i++ )
-  {
-    c = bcp_GetBCLCube(p,l,i);
-    for( j = 0; j < p->blk_cnt; j++ )
-    {
-      _mm_storeu_si128(mask+j, _mm_and_si128(_mm_loadu_si128(mask+j), _mm_loadu_si128(c+j))); 
-     }
-  }
-  
+  //__m128i z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));
+  __m128i o = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 2));
+  __m128i dc = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 3));
+  __m128i mask;
+
+  /* loop over all blocks of the cube */  
+
   for( j = 0; j < p->blk_cnt; j++ )
-  {    
-    r = _mm_loadu_si128(mask+j); 
-    r = _mm_and_si128( r, _mm_srai_epi16(r,1));          // r = r & (r >> 1)     this will generate x1 for DC values
-    r = _mm_and_si128(r, z);                                    // r = r & 01   this will generate 01 for DC and 00 for "10" and "01" (and also for "00")
-    r = _mm_or_si128(r, _mm_slli_epi16(r,1));          // r = r | (r<<1)
-    _mm_storeu_si128(mask+j, r);          // and store the result in the destination cube    
-  }
+  {
+    /* initially fill the mask with all DC */
+    
+    mask = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 3));
+
+    /* find columns where we only have dc (bitpattern 11) in one column */
+    
+    for( i = 0; i < l->cnt; i++ )
+    {
+      c = bcp_GetBCLCube(p,l,i);
+      mask = _mm_and_si128(mask, _mm_loadu_si128(c+j));
+    }
+
+    /* mask contains 11 bit pattern if there is only dc in that column, now make a proper mask out of it */
+  
+    //mask = _mm_and_si128( mask, _mm_srai_epi16(mask,1));          // r = r & (r >> 1)     this will generate x1 for DC values
+    //mask = _mm_and_si128(mask, z);                                    // r = r & 01   this will generate 01 for DC and 00 for "10" and "01" (and also for "00")
+
+    mask = _mm_and_si128( mask, _mm_slli_epi16(mask,1));          // r = r & (r << 1)     this will generate 1x for DC values
+    mask = _mm_and_si128(mask, o);                                    // r = r & 10   this will generate 10 for DC and 00 for "10" and "01" (and also for "00")
+    mask = _mm_andnot_si128(mask, dc);                                // invert mask, so we have 01 for DC and 11 for all other values, the "dc" 2nd arg is just a dummy value for andnot
+
+    
+    /* for a dc column, the mask contains the bit pattern 01 (for zero), apply this to the DC columns */
+    
+    for( i = 0; i < l->cnt; i++ )
+    {
+      c = bcp_GetBCLCube(p,l,i);
+      _mm_storeu_si128(c+j, _mm_and_si128(mask, _mm_loadu_si128(c+j)));
+     }
+  } 
 }
+
+

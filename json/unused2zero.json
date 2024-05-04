@@ -1,0 +1,17 @@
+[
+  {
+    "expr":"a&b&c&d&e"
+  },
+  {
+    "cmd":"bcl2slot",
+    "expr":"a&-b&-(b&c)&-d",
+    "slot":0,
+    "label0":"r1"
+  },
+  {
+    "cmd":"unused2zero",
+    "slot":0,
+    "label0":"r2"
+  }
+]
+
