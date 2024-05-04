@@ -361,6 +361,7 @@ co bc_ExecuteVector(cco in)
             bcp_DeleteBCL(p, slot_list[slot]);
           slot_list[slot] = l;
           l = NULL;
+		  is_out_arg = 1;         // this will output "arg" if label0 is used
         }
       }
       else if ( p != NULL &&  strcmp(cmd, "minimize") == 0 )
@@ -392,7 +393,7 @@ co bc_ExecuteVector(cco in)
         int intersection_result;
         assert(slot_list[0] != NULL);
         assert(arg != NULL);
-        bcp_IntersectionBCL(p, slot_list[0], arg);   // a = a intersection with b 
+        intersection_result = bcp_IntersectionBCL(p, slot_list[0], arg);   // a = a intersection with b 
         assert(intersection_result != 0);
         is_empty = 0;
         if ( slot_list[0]->cnt == 0 )
@@ -443,6 +444,23 @@ co bc_ExecuteVector(cco in)
         assert( slot_list[slot] != NULL );
         assert( slot_list[0] != NULL );        
         bcp_CopyBCL(p, slot_list[slot], slot_list[0]);
+      }
+      else if ( p != NULL && strcmp(cmd, "copy0to") == 0  )
+      {
+        if ( slot_list[slot] == NULL )
+          slot_list[slot] = bcp_NewBCL(p);
+        assert( slot_list[slot] != NULL );
+        if ( slot_list[0] == NULL )
+          slot_list[0] = bcp_NewBCL(p);
+        assert( slot_list[0] != NULL );        
+        bcp_CopyBCL(p, slot_list[slot], slot_list[0]);		// copy content from slot_list[0] into slot_list[slot], return 0 for error
+      }
+      else if ( p != NULL && strcmp(cmd, "copy0from") == 0  )
+      {
+        if ( slot_list[0] == NULL )
+          slot_list[0] = bcp_NewBCL(p);
+        assert( slot_list[0] != NULL );        
+        bcp_CopyBCL(p, slot_list[0], arg);		// similar to "bcl2slot", copy content from arg into slot_list[0], return 0 for error
       }
       else if ( cmd[0] != '\0' )
       {
