@@ -38,6 +38,11 @@
     "cmd":"subtract0",
     "slot":1,
     "label0":"3_post_subtract"    
+  },
+  {
+    "cmd":"subtract0",
+    "expr":"c1&m1",
+    "label0":"4_post_subtract" 
   }
   
 ]

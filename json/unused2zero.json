@@ -1,17 +1,36 @@
 [
   {
-    "expr":"a&b&c&d&e"
-  },
-  {
     "cmd":"bcl2slot",
-    "expr":"a&-b&-(b&c)&-d",
-    "slot":0,
-    "label0":"r1"
+    "expr":"c1&m1",
+    "slot":1
   },
   {
     "cmd":"unused2zero",
-    "slot":0,
-    "label0":"r2"
+    "slot":1
+  },
+  {
+    "cmd":"bcl2slot",
+    "expr":"c2&m2",
+    "slot":2
+  },
+  {
+    "cmd":"copy0from",
+    "slot":1,
+    "label0":"01"
+  },
+  {
+    "cmd":"copy0from",
+    "slot":2,
+    "label0":"02"
+  },
+  {
+    "cmd":"copy0from",
+    "slot":1
+  },
+  {
+    "cmd":"intersection0",
+    "slot":2,
+    "label0":"03"
   }
 ]
 
