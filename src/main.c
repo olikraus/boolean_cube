@@ -277,6 +277,7 @@ const char *json_input_spec =
 "bcl2slot      := { \"cmd\":\"bcl2slot\", <bx>, \"slot\":<slnr> } Copy the given input <bx> into a slot with number <slnr>\n"
 "show          := { \"cmd\":\"show\", <bxs>  }                  Show the content of <bxs>\n"
 "minimize      := { \"cmd\":\"minimize\", \"slot\":<slnr>  }      Minimize the content of the specified slot\n"
+"complement    := { \"cmd\":\"complement\", \"slot\":<slnr>  }    Complement the content of the specified slot\n"
 "unused2zero   := { \"cmd\":\"unused2zero\", \"slot\":<slnr>  }   Force unused variables to 'not used' (zero)\n"
 "intersection0 := { \"cmd\":\"intersection0\", <bxs>, <l> }     Intersection ('AND') of slot 0 and <bxs>, result in slot 0.\n"
 "union0        := { \"cmd\":\"union0\", <bxs>, <l> }            Union ('OR') of slot 0 and <bxs>, result in slot 0.\n"
