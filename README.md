@@ -2,6 +2,8 @@
 
 ## License
 
+Boolean Cube Calculator, Copyright 2024 by Oliver Kraus
+
 https://creativecommons.org/licenses/by-sa/4.0/deed.en
 
 ## Terms
@@ -130,7 +132,7 @@ and the BCL provided by the "slot" command. There are ten slots from 0 to 9.
 
 The "label" and "label0" JSON member will generate a JSON map in the output JSON.
  - "label" will output the content of several result flags.
- - "label0" will additionaly output the conent of slot 0.
+ - "label0" will additionally output the content of slot 0.
  
 ## JSON output file
 
