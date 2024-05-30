@@ -20,7 +20,7 @@ In this project we will use the term BCL, which usually referes to a SOP / DNF e
 Most of the algorithms used in this project are summarized in the technical report "Multiple-Valued Logic Minimization for PLA Synthesis"
 from Richard L. Rudell, see https://www2.eecs.berkeley.edu/Pubs/TechRpts/1986/734.html 
 
-The project owner is also author of the book "Synthese von digitalen asynchronen Zustandsautomaten" (ISBN 9783183372201), which also contains
+The project owner is author of the book "Synthese von digitalen asynchronen Zustandsautomaten" (ISBN 9783183372201), which contains
 a detailed description of all the algorithms used in this project.
 
 Other references include:
@@ -36,7 +36,7 @@ Alberto L. Sangiovanni-Vincentelli,
 Kluwer Academic Publishers Group,
 ISBN 0-8983-164-9
 
-Note: This project limits the calculation to boolean logic. Multi-valued logic is not part of this project.
+Note: This project limits the calculation to boolean logic only. Multi-valued logic is not part of this project.
 
 ## Purpose
 
@@ -86,5 +86,78 @@ Multiple input/output combinations can be executed:
 ```
 ./bcc -ojson output1.json -json input1.json -ojson output2.json -json input2.json
 ```
+
+## JSON input file
+
+The input JSON is an array of multiple command blocks (described as a JSON map):
+```
+JSON Input := [ <block1>, <block2>, ..., <blockn>  ]
+```
+
+Such a block looks like this:
+``` json
+{
+  "cmd":"<command name>",
+  "expr":"<boolean expression>",
+  "slot":<number>,
+  "label":"<key>",  
+  "label0":"<key>"  
+}
+```
+
+The command name must be one of the following strings:
+ - "bcl2slot": Convert the expression into a BCL and store the result in the given slot.
+ - "show": Print the given slot.
+ - "minimize": Minimize the content of the given slot.
+ - "complement": Calculate the complement of the given slot and overwrite the slot with the result.
+ - "intersection0": Calculate the intersection between slot 0 and the given slot. Store the result in slot 0.
+ - "union0": Calculate the union between slot 0 and the given slot. Store the result in slot 0.
+ - "subtract0": Subtract the given slot from slot 0 and store the result in slot 0.
+ - "equal0": Compare the given slot with slot 0 and set several flags accordingly. Store the result in the result json.
+ - "exchange0": Exchange the given slot with slot 0.
+ - "copy0to": Copy the BCL from slot 0 to the given slot.
+ - "copy0from": Copy the BCL from the given slot n to slot 0.
+ 
+The "expr" JSON member is used by the "bcl2slot" command.
+
+The "slot" is used by most of the commands as an argument. Many commands will use BCL content of slot 0 
+and the BCL provided by the "slot" command.
+
+The "label" and "label0" JSON member will generate a JSON map in the output JSON.
+ - "label" will output the content of several result flags.
+ - "label0" will additionaly output the conent of slot 0.
+ 
+## JSON output file
+
+The json output file is a map, which includes a map for each "label" or "label0" member found in the input JSON:
+``` json
+{ 
+	"<key>": {
+	  "index":"<number>",
+	  "empty":"<number>",
+	  "subset":<number>,
+	  "superset":"<string>",
+	  "expr":"<boolean expression>"
+	}
+	...
+}
+```
+
+The argument of a "label" or "label0" member in the JSON input is used as a key for the outer map in the JSON output.
+The "expr" member contains the boolean expression of slot 0 if "label0" had been used.
+The flags are:
+	- "empty":	1 if slot 0 is empty
+	- "subset":  1 if slot 0 is subset of/equal with the given slot n for "equal0" cmd
+	- "superset":  1 if slot 0 is superset of/equal with the given slot n for "equal0" cmd
+
+Slot 0 is equal to slot n of subset and superset are both set to 1.
+ 
+ 
+ 
+
+
+
+
+
 
 
