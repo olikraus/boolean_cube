@@ -146,9 +146,10 @@ The json output file is a map, which includes a map for each "label" or "label0"
 The argument of a "label" or "label0" member in the JSON input is used as a key for the outer map in the JSON output.
 The "expr" member contains the boolean expression of slot 0 if "label0" had been used.
 The flags are:
-	- "empty":	1 if slot 0 is empty
-	- "subset":  1 if slot 0 is subset of/equal with the given slot n for "equal0" cmd
-	- "superset":  1 if slot 0 is superset of/equal with the given slot n for "equal0" cmd
+
+ - "empty":	1 if slot 0 is empty
+ - "subset":  1 if slot 0 is subset of/equal with the given slot n for "equal0" cmd
+ - "superset":  1 if slot 0 is superset of/equal with the given slot n for "equal0" cmd
 
 Slot 0 is equal to slot n of subset and superset are both set to 1.
  
