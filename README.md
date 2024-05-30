@@ -99,7 +99,7 @@ Such a block looks like this:
 {
   "cmd":"<command name>",
   "expr":"<boolean expression>",
-  "slot":<number>,
+  "slot":number,
   "label":"<key>",  
   "label0":"<key>"  
 }
@@ -133,10 +133,10 @@ The json output file is a map, which includes a map for each "label" or "label0"
 ``` json
 { 
 	"<key>": {
-	  "index":"<number>",
-	  "empty":"<number>",
-	  "subset":<number>,
-	  "superset":"<string>",
+	  "index":number,
+	  "empty":number,
+	  "subset":number,
+	  "superset":number,
 	  "expr":"<boolean expression>"
 	}
 	...
