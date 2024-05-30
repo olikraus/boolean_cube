@@ -99,7 +99,7 @@ Such a block looks like this:
 {
   "cmd":"<command name>",
   "expr":"<boolean expression>",
-  "slot":number,
+  "slot":9,
   "label":"<key>",  
   "label0":"<key>"  
 }
@@ -121,7 +121,7 @@ The command name must be one of the following strings:
 The "expr" JSON member is used by the "bcl2slot" command.
 
 The "slot" is used by most of the commands as an argument. Many commands will use BCL content of slot 0 
-and the BCL provided by the "slot" command.
+and the BCL provided by the "slot" command. There are ten slots from 0 to 9.
 
 The "label" and "label0" JSON member will generate a JSON map in the output JSON.
  - "label" will output the content of several result flags.
@@ -133,10 +133,10 @@ The json output file is a map, which includes a map for each "label" or "label0"
 ``` json
 { 
 	"<key>": {
-	  "index":number,
-	  "empty":number,
-	  "subset":number,
-	  "superset":number,
+	  "index":99,
+	  "empty":0,
+	  "subset":0,
+	  "superset":0,
 	  "expr":"<boolean expression>"
 	}
 	...
