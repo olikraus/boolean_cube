@@ -119,6 +119,11 @@ The command name must be one of the following strings:
  - "copy0from": Copy the BCL from the given slot n to slot 0.
  
 The "expr" JSON member is used by the "bcl2slot" command.
+The syntax for the boolean expression includes "&" for AND,"|" for OR and "-" for NOT, however such syntax
+can be redefined (see  https://github.com/olikraus/boolean_cube/blob/main/json/redef_expr.json).
+Expressions can be nested with parenthesis. Any C-like identifier are accepted as variable names.
+An expression may look like this: "(a&-c)|(a&b)". 
+
 
 The "slot" is used by most of the commands as an argument. Many commands will use BCL content of slot 0 
 and the BCL provided by the "slot" command. There are ten slots from 0 to 9.
