@@ -27,14 +27,15 @@
  
 
   
-  === definitions ===
+  Definitions
   
-  - Variable: A boolean variable which is one (1), zero (0), don't care (-) or illegal (x)
+  - Variable: A boolean variable which is one (1), zero (0), don't care (-) or illegal (x), A variable occupies 2 bit.
   - Variable encoding: A variable is encoded with two bits: one=10, zero=01, don't care=11, illegal=00
-  - Blk (block): A physical unit in the uC which can group multiple variables, e.g. __m128i or uint64_t
-  - Cube: A vector of multiple blocks, which can hold all variables of a boolean cube problem. Usually this is interpreted as a "product" ("and" operation) of the boolean variables
-  - Boolean cube problem: A master structure with a given number of boolean variables ("var_cnt")  
-
+  - Blk (block): A physical unit in the uC which can group multiple variables, currently this is a __m128i object
+  - Boolean Cube (BC): A vector of multiple blocks, which can hold all variables of a boolean cube problem. Usually this is interpreted as a "product" ("and" operation) of the boolean variables
+  - Boolean Cube Problem (BCP): A master structure with a given number of boolean variables ("var_cnt") 
+  - Boolean Cube List (BCP): A list of Boolean Cubes
+  - Boolean Cube Expression (BCX): A node inside an abstract syntax tree for a boolean expression.
 
 */
 
@@ -47,11 +48,11 @@
 #include "co.h"
 
 
-
-typedef struct bcp_struct *bcp;
-typedef __m128i *bc;
-typedef struct bcl_struct *bcl;
-typedef struct bcx_struct *bcx;
+/* forward declarations */
+typedef struct bcp_struct *bcp;		// problem structure, required as first argument for almost all functions 
+typedef __m128i *bc;		// a single boolean cube is a vector of __m128i objects. The size of this vector is stored in the "blk_cnt" member of bcp
+typedef struct bcl_struct *bcl;		// boolean cube list
+typedef struct bcx_struct *bcx;		// abstract syntax tree of a boolean cube expresion
 
 
 /* boolean cube problem, each function will require a pointer to this struct */
@@ -60,7 +61,7 @@ struct bcp_struct
 {
   int var_cnt;  // number of variables per cube
   int blk_cnt;  // number of blocks per cube, one block is one __m128i = 64 variables
-  int vars_per_blk_cnt; // number of variables per block --> 64
+  int vars_per_blk_cnt; // number of variables per block --> 64, because one variable requires 2 bit, so a __m128i can hold 64 variables
   int bytes_per_cube_cnt; // number of bytes per cube, this is blk_cnt*sizeof(__m128i)
   char *cube_to_str;    // storage area for one visual representation of a cube
   bcl stack_cube_list;    // storage area for temp cubes
@@ -80,8 +81,7 @@ struct bcp_struct
   co var_list;                  // vector with all variables, derived from var_map
 };
 
-/* one cube, the number of __m128i is (var_cnt / 64) */
-
+/* a list of boolean cubes */
 struct bcl_struct
 {
   int cnt;
@@ -101,7 +101,7 @@ struct bcl_struct
 
 struct bcx_struct
 {
-  int type;
+  int type;				// One of the BCX_TYPE_xxx definitions
   int is_not;           // 0 or 1
   bcx next;
   bcx down;
