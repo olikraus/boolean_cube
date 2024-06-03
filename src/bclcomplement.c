@@ -203,6 +203,69 @@ void bcp_InvertCubesBCL(bcp p, bcl l)
 }
 
 /*
+	create a cube with a signle varibale at "pos' with value 'val'
+*/
+void bcp_GetSingleVarCube(bcp p, bc dest, int pos, int val)
+{
+  bcp_CopyGlobalCube(p, dest, 3);	// copy dc cube to dest
+  bcp_SetCubeVar(p, dest, pos, val);		// set the variable
+}
+
+/*
+	create a bcl with one cube for each positive or negative variable
+*/
+int bcp_AddBCLCubesWithSingleVariables(bcp p, bcp result, bc src_cube)
+{
+  int i;
+  int val;
+  int cube_pos;
+  if ( result == NULL )
+    return 0;
+  for( i = 0; i < p->var_cnt; i++ )
+  {
+    val = bcp_GetCubeVar(p, src_cube, i);
+    if ( val < 3 )
+    {
+      cube_pos = bcp_AddBCLCube(p, result);
+      if ( cube_pos < 0 )
+	return 0;
+      bcp_GetSingleVarCube(p, bcp_GetBCLCube(p, result, cube_pos), i, val);
+    }
+  }
+  return 1;  
+}
+
+/*
+  apply distribution law
+*/
+bcl bcp_NewBCLVariableIntersection(bcp p, bcl l)
+{
+  bcl result = bcp_NewBCL(p);
+  bcl cl;
+  int i;
+  if ( result == NULL )
+    return NULL;
+  cl = bcp_NewBCL(p);
+  if ( cl == NULL )
+    return bcp_DeleteBCL(p, result), NULL;
+  if ( l->cnt == 0 )
+    return result;		// not clear whther this is the correct value
+  if ( bcp_AddBCLCubesWithSingleVariables(p, cl, bcp_GetBCLCube(p, l, 0)) == 0 )
+    return bcp_DeleteBCL(p, result), bcp_DeleteBCL(p, cl), NULL;
+  bcp_AddBCLCubesByBCL( result, cl );
+  for( i = 1; i < bcl->cnt; i++ )
+  {
+    bcp_ClearBCL(p, cl);
+    if ( bcp_AddBCLCubesWithSingleVariables(p, cl, bcp_GetBCLCube(p, l, i)) == 0 )
+      return bcp_DeleteBCL(p, result), bcp_DeleteBCL(p, cl), NULL;
+    if ( bcp_IntersectionBCL(p, result, cl) == 0 )
+      return bcp_DeleteBCL(p, result), bcp_DeleteBCL(p, cl), NULL;
+  }
+  return bcp_DeleteBCL(p, cl), result;
+}
+
+
+/*
   apply distribution law
 */
 bcl bcp_NewBCLIntersectionCubes(bcp p, bcl l)
