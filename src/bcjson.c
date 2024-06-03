@@ -351,6 +351,8 @@ co bc_ExecuteVector(cco in)
       // STEP 2: Execute the command
       
       arg = (l!=NULL)?l:slot_list[slot];
+      
+      logprint(1, "json cmd %d/%d '%s'", i+1, cnt, cmd);
 
       // "bcl2slot"  "bcl" into "slot"
       if ( p != NULL && strcmp(cmd, "bcl2slot") == 0 )

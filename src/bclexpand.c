@@ -158,12 +158,16 @@ void bcp_DoBCLExpandWithOffSet(bcp p, bcl l, bcl off)
   bc c;
   int cval;
   int is_expanded;      // set to 1 if the cube c had been successfully expanded
+	
+  logprint(5, "bcp_DoBCLExpandWithOffSet, bcl onset size=%d, bcl offset size=%d", l->cnt, off->cnt);  
+	
 
   bcp_StartCubeStackFrame(p);
   c = bcp_GetTempCube(p);
   
   for( i = 0; i < l->cnt; i++ ) // l->cnt may grow so new cubes are also analysed
   {
+    //logprint(6, "bcp_DoBCLExpandWithOffSet, step %d/%d", i+1, l->cnt);  
     if ( l->flags[i] == 0 )
     {
       // c = bcp_GetBCLCube(p, l, i);
@@ -205,6 +209,7 @@ void bcp_DoBCLExpandWithOffSet(bcp p, bcl l, bcl off)
     } // not deleted in l
   }
   bcp_PurgeBCL(p, l);  // remove all deleted cubes from "l"
+  bcp_DoBCLSingleCubeContainment(p, l);
   bcp_EndCubeStackFrame(p);  
 }
 
@@ -219,6 +224,7 @@ void bcp_DoBCLExpandWithCofactor(bcp p, bcl l)
   bcp_StartCubeStackFrame(p);
   c = bcp_GetTempCube(p);
  
+  logprint(5, "bcp_DoBCLExpandWithCofactor, bcl size=%d", l->cnt);  
   
   
   for( i = 0; i < l->cnt; i++ ) // l->cnt may grow so new cubes are also analysed

@@ -32,12 +32,13 @@ void bcp_DoBCLSingleCubeContainment(bcp p, bcl l)
   int cnt = l->cnt;
   bc c;
   int vc;
+  int reduceCnt = 0;
   
   /*
     calculate the number of 01 and 10 codes for each of the cubes in "l"
     idea is to reduce the number of "subset" tests, because for a cube with n variables,
     can be a subset of another cube only if this other cube has lesser variables.
-    however: also the requal case is checked, to check wether two cubes are identical
+    however: also the equal case is checked, this means to check whether two cubes are identical
   */
   int *vcl = bcp_GetBCLVarCntList(p, l);
 
@@ -66,6 +67,7 @@ void bcp_DoBCLSingleCubeContainment(bcp p, bcl l)
               if ( bcp_IsSubsetCube(p, c, bcp_GetBCLCube(p, l, j)) != 0 )
               {
                 l->flags[j] = 1;      // mark the j cube as deleted
+		reduceCnt++;
               }
             }
           } // j != i
@@ -75,6 +77,7 @@ void bcp_DoBCLSingleCubeContainment(bcp p, bcl l)
   } // i loop
   bcp_PurgeBCL(p, l);
   free(vcl);
+  logprint(8, "bcp_DoBCLSingleCubeContainment, reduceCnt=%d, bcl size=%d", reduceCnt, l->cnt);  
 }
 
 /*============================================================*/
@@ -121,6 +124,12 @@ void bcp_DoBCLMultiCubeContainment(bcp p, bcl l)
   int min = p->var_cnt;
   int max = 0;
   int vc;
+  int reduceCnt = 0;
+  int step = 1;
+  clock_t t0, t1;
+
+  logprint(5, "bcp_DoBCLMultiCubeContainment start, bcl size=%d", l->cnt);  
+  t1 = t0 = clock();
 
   for( i = 0; i < l->cnt; i++ )
   {
@@ -142,12 +151,22 @@ void bcp_DoBCLMultiCubeContainment(bcp p, bcl l)
         if ( bcp_IsBCLCubeRedundant(p, l, i) )
         {
           l->flags[i] = 1;
+	  reduceCnt++;
         }
-        
+	t1 = clock();
+	logprint(6, "bcp_DoBCLMultiCubeContainment, step %d/%d, varcnt=%d [%d, %d], reduce cnt=%d, clock %lu/%lu", step, l->cnt, vc, min, max, reduceCnt, t1-t0, p->clock_do_bcl_multi_cube_containment); 
+	step++;
+	if ( t1-t0 > p->clock_do_bcl_multi_cube_containment )
+	  break;
       } // i cube not deleted
+      if ( t1-t0 > p->clock_do_bcl_multi_cube_containment )
+        break;
     } // i loop
+    if ( t1-t0 > p->clock_do_bcl_multi_cube_containment )
+      break;
   } // vc loop
   free(vcl);
   bcp_PurgeBCL(p, l);
+  logprint(5, "bcp_DoBCLMultiCubeContainment end, reduceCnt=%d, bcl size=%d, steps %d, time-limit reached=%d", reduceCnt, l->cnt, step, t1-t0 > p->clock_do_bcl_multi_cube_containment);  
 }
 

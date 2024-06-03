@@ -3,9 +3,7 @@
 
 COPATH = ../../c-object/co
 
-# CFLAGS = -g -pg -Wall
-# CFLAGS = -O4 -march=silvermont -Wall  -I../c-object/co -I.
-# CFLAGS = -g -pg -Wall
+# CFLAGS = -O4 -pg -march=silvermont  -Wall  -I$(COPATH) -I.
 
 # CFLAGS = -g -Wall -march=silvermont -fsanitize=address -I$(COPATH) -I.
 CFLAGS = -g -Wall -march=silvermont -I$(COPATH) -I.

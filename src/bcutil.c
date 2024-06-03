@@ -17,6 +17,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 
 
 /*
@@ -87,5 +88,31 @@ void print128_num(__m128i var)
            val[12], val[13], 
            val[14], val[15]
   );
+}
+
+/*
+	log levels
+	1: json commands
+	2: toplevel procedures
+	3: highlevel procedures
+	4: loops within top/highlevel
+	5: helper procedures (like mcc/irredundant)
+	6: loop within 5
+	7: 
+	8: often used helper procedures (like scc)
+*/
+
+int bc_log_level = 0;
+
+void logprint(int log, const char *fmt, ...)
+{
+	if ( log <= bc_log_level )
+	{
+		va_list va;
+		va_start(va, fmt);
+		vfprintf(stderr, fmt, va);
+		fprintf(stderr, "\n");
+		va_end(va);	
+	}
 }
 

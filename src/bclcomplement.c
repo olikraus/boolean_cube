@@ -27,6 +27,10 @@
 #include "bc.h"
 #include <assert.h>
 
+/*=================================================================*/
+/* complement with subtract */
+
+
 /*
   looks like the complement with substract is much faster. than the cofactor version
 */
@@ -36,7 +40,9 @@ bcl bcp_NewBCLComplementWithSubtract(bcp p, bcl l)
     int is_mcc = 1;
     if ( result == NULL )
       return NULL;
-  
+
+    logprint(2, "bcp_NewBCLComplementWithSubtract, bcl size=%d", l->cnt );
+    
     bcp_CalcBCLBinateSplitVariableTable(p, l);
     if ( bcp_IsBCLUnate(p) )
       is_mcc = 0;
@@ -46,6 +52,8 @@ bcl bcp_NewBCLComplementWithSubtract(bcp p, bcl l)
     
     // do a small minimization step
     bcp_DoBCLExpandWithOffSet(p, result, l);   // not sure whether this will help, cubes might be already max due to the sharp operation
+    
+
     bcp_DoBCLMultiCubeContainment(p, result);
 
     return result;
@@ -53,7 +61,8 @@ bcl bcp_NewBCLComplementWithSubtract(bcp p, bcl l)
 
 bcl bcp_NewBCLComplement(bcp p, bcl l)
 {
-  return bcp_NewBCLComplementWithSubtract(p, l);
+  return bcp_NewBCLComplementWithIntersection(p, l);
+  //return bcp_NewBCLComplementWithSubtract(p, l);
 }
 
 int bcp_ComplementBCL(bcp p, bcl l)
@@ -66,7 +75,8 @@ int bcp_ComplementBCL(bcp p, bcl l)
   return bcp_DeleteBCL(p, ll), 1;
 }
 
-
+/*=================================================================*/
+/* complement with cofactor */
 
 /*
   complement calculation with cofactor seems to be slower...
@@ -140,15 +150,15 @@ bcl bcp_NewBCLComplementWithCofactorSub(bcp p, bcl l)
       bcp_SetCubeVar(p, c, var_pos, 2);  
       for( j = 0; j < cf1->cnt; j++ )
       {
-        if ( i != j )
-        {
-          if ( bcp_CompareCube(p, c, bcp_GetBCLCube(p, cf1, j)) == 0 )
-          {
-            // the two cubes only differ in the selected variable, so extend the cube in cf1 and remove the cube from cf2
-            bcp_SetCubeVar(p, bcp_GetBCLCube(p, cf1, j), var_pos, 3);
-            cf2->flags[i] = 1;  // remove the cube from cf2, so that it will not be added later by bcp_AddBCLCubesByBCL()
-          }
-        } // i != j
+	if ( i != j )
+	{
+	  if ( bcp_CompareCube(p, c, bcp_GetBCLCube(p, cf1, j)) == 0 )
+	  {
+	    // the two cubes only differ in the selected variable, so extend the cube in cf1 and remove the cube from cf2
+	    bcp_SetCubeVar(p, bcp_GetBCLCube(p, cf1, j), var_pos, 3);
+	    cf2->flags[i] = 1;  // remove the cube from cf2, so that it will not be added later by bcp_AddBCLCubesByBCL()
+	  }
+	} // i != j
       } // for cf1
       bcp_SetCubeVar(p, c, var_pos, 1);  // undo the change in the cube from cf2
     }
@@ -174,9 +184,67 @@ bcl bcp_NewBCLComplementWithCofactorSub(bcp p, bcl l)
 */
 bcl bcp_NewBCLComplementWithCofactor(bcp p, bcl l)
 {
-  bcl n = bcp_NewBCLComplementWithCofactorSub(p, l);
+  bcl n;
+  logprint(2, "bcp_NewBCLComplementWithCofactor, bcl size=%d", l->cnt );
+  n = bcp_NewBCLComplementWithCofactorSub(p, l);
   bcp_DoBCLMultiCubeContainment(p, n);
   return n;
 }
 
+
+/*=================================================================*/
+/* complement with demorgan & intersection */
+
+void bcp_InvertCubesBCL(bcp p, bcl l)
+{
+  int i;
+  for( i = 0; i < l->cnt; i++ )
+    bcp_InvertCube(p, bcp_GetBCLCube(p, l, i));
+}
+
+/*
+  apply distribution law
+*/
+bcl bcp_NewBCLIntersectionCubes(bcp p, bcl l)
+{
+  int i, j;
+  bcl result = bcp_NewBCL(p);
+  bc c;
+  bc a;
+  if ( result == NULL )
+    return NULL;
+  bcp_StartCubeStackFrame(p);
+
+  logprint(2, "bcp_NewBCLComplementWithIntersection, bcl size=%d", l->cnt );
+
+  c = bcp_GetTempCube(p);
+
+  for( i = 0; i < l->cnt; i++ )
+  {
+    a = bcp_GetBCLCube(p, l, i);
+    for( j = i+1; j < l->cnt; j++ )
+    {
+      if ( bcp_IntersectionCube(p, c, a, bcp_GetBCLCube(p, l, j)) ) // returns 0, if there is no intersection
+      {
+	if ( bcp_AddBCLCubeByCube(p, result, c) < 0 ) // if a is not subcube of any existing cube, then add the modified a cube to the list
+	  return bcp_EndCubeStackFrame(p), bcp_DeleteBCL(p, result), NULL;  // memory error	  
+      }
+    }
+    logprint(4, "bcp_NewBCLComplementWithIntersection, step %d/%d result size=%d", i+1, l->cnt,  result->cnt);
+  }
+  bcp_EndCubeStackFrame(p);
+  bcp_DoBCLSingleCubeContainment(p, result);
+  return result;
+}
+
+bcl bcp_NewBCLComplementWithIntersection(bcp p, bcl l)
+{
+  bcl result;
+  bcp_InvertCubesBCL(p, l);
+  result = bcp_NewBCLIntersectionCubes(p, l);
+  if ( result != NULL )
+    bcp_DoBCLMultiCubeContainment(p, result);
+  bcp_InvertCubesBCL(p, l);
+  return result;
+}
 

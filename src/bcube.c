@@ -177,6 +177,30 @@ void bcp_GetVariableMask(bcp p, bc mask, bc c)
 }
 
 /*
+	00 --> 11
+	01 --> 10
+	10 --> 01
+	11 --> 11
+
+	3 Jun 24: NOT TESTED
+*/
+void bcp_InvertCube(bcp p, bc c)
+{
+  int i, cnt = p->blk_cnt;
+  __m128i z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));
+  __m128i r;
+  for( i = 0; i < cnt; i++ )
+  {    
+    r = _mm_loadu_si128(c+i); 
+    r = _mm_and_si128( r, _mm_srai_epi16(r,1));          // r = r & (r >> 1)     this will generate x1 for DC values
+    r = _mm_andnot_si128(r, z);                                    // r = ~r & 01   this will generate 00 for DC and 01 for "10" and "01" (and also for "00")
+    r = _mm_or_si128(r, _mm_slli_epi16(r,1));	  		// r = r | (r <<1)  00 for DC and 11 for all other values
+    r = _mm_xor_si128( r, _mm_loadu_si128(c+i) );	// invert the the original values, except for DC
+    _mm_storeu_si128(c+i, r);          // and store the result in the cube 
+  }
+}
+
+/*
   does a bitwise and operation and checks whether the result is bitwise zeor
   This is used together with bcp_GetVariableMask()
 */

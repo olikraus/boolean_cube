@@ -56,8 +56,9 @@ static int bcp_DoBCLSharpOperation(bcp p, bcl l, bc a, bc b)
       if ( new_aa != 0 )
       {
         bcp_SetCubeVar(p, a, i, new_aa);        // modify a 
-        if ( bcp_AddBCLCubeByCube(p, l, a) < 0 ) // if a is not subcube of any existing cube, then add the modified a cube to the list
-          return 0;  // memory error
+	//if ( bcp_IsBCLCubeCovered(p, l, a) == 0 )
+	  if ( bcp_AddBCLCubeByCube(p, l, a) < 0 ) // if a is not subcube of any existing cube, then add the modified a cube to the list
+            return 0;  // memory error
         bcp_SetCubeVar(p, a, i, orig_aa);        // undo the modification
       }
     }
@@ -77,6 +78,9 @@ int bcp_SubtractBCL(bcp p, bcl a, bcl b, int is_mcc)
   bcl result = bcp_NewBCL(p);
   if ( result == NULL )
     return 0;
+
+  logprint(2, "bcp_SubtractBCL, bcl a size=%d, bcl a size=%d, is_mcc=%d", a->cnt, b->cnt, is_mcc );
+  
   for( i = 0; i < b->cnt; i++ )
   {
     bcp_ClearBCL(p, result);
@@ -90,6 +94,8 @@ int bcp_SubtractBCL(bcp p, bcl a, bcl b, int is_mcc)
     bcp_DoBCLSingleCubeContainment(p, a);
     if ( is_mcc )
       bcp_DoBCLMultiCubeContainment(p, a);
+    //bcp_MinimizeBCLWithOnSet(p, a);
+    logprint(4, "bcp_SubtractBCL, step %d/%d, bcl a size=%d", i+1, b->cnt, a->cnt);
   }
   bcp_DeleteBCL(p, result);
   return 1; // success

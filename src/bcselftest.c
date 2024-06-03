@@ -77,6 +77,7 @@ void internalTest(int var_cnt)
   bcl m = bcp_NewBCL(p);
   bcl n;
   bcl nn;
+  bcl nnn;
   
   int tautology;
   int equal;
@@ -143,7 +144,6 @@ void internalTest(int var_cnt)
   assert(tautology != 0);               
 
 
-
   printf("cofactor complement test\n");
   bcp_ClearBCL(p, l);
   
@@ -156,13 +156,27 @@ void internalTest(int var_cnt)
   //bcp_DoBCLSingleCubeContainment(p, n);
   printf("simple expand new size %d\n", n->cnt);
 
+
   printf("subtract complement test\n");
   nn = bcp_NewBCLComplementWithSubtract(p, n);  // complement of the complement, so this should be equal to r
   assert( nn->cnt != 0 );
+  bcp_ShowBCL(p, nn);
 
   printf("equal test 2\n");
   equal = bcp_IsBCLEqual(p, r, nn);
   assert( equal != 0 );
+  
+
+  printf("intersection complement test\n");
+  nnn = bcp_NewBCLComplementWithIntersection(p, n);  // complement of the complement, so this should be equal to r
+  //nnn = bcp_NewBCLComplementWithSubtract(p, n);  // complement of the complement, so this should be equal to r
+  assert( nnn->cnt != 0 );
+  bcp_ShowBCL(p, nnn);
+
+  printf("equal test 3\n");  
+  equal = bcp_IsBCLEqual(p, r, nnn);
+  assert( equal != 0 );
+  
 
 
   printf("intersection test 3\n");

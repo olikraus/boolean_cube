@@ -45,6 +45,7 @@
 #include <x86intrin.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <time.h>
 #include "co.h"
 
 
@@ -77,6 +78,9 @@ struct bcp_struct
   int x_or;
   int x_var_cnt;         // variable counter for expressions, should be equal to coMapSize(var_map)
   
+	
+  clock_t clock_do_bcl_multi_cube_containment;		// max time limit given for multi cube containment operation, must be seconds*CLOCKS_PER_SEC
+	
   co var_map;           // map with all variables, key=name, value=position (double), p->x_var_cnt contains the number of variables in var_map
   co var_list;                  // vector with all variables, derived from var_map
 };
@@ -111,6 +115,12 @@ struct bcx_struct
 };
 
 /*============================================================*/
+
+/* bcutil.c */
+extern int bc_log_level;
+void print128_num(__m128i var);
+void logprint(int log, const char *fmt, ...);
+
 
 /* bcp.c */
 int bcp_GetVarCntFromString(const char *s);
@@ -147,6 +157,7 @@ void bcp_SetCubeByString(bcp p, bc c, const char *s);
 
 int bcp_IsTautologyCube(bcp p, bc c);
 void bcp_GetVariableMask(bcp p, bc mask, bc c);
+void bcp_InvertCube(bcp p, bc c);  	// invert veriables in the cube, 3 Jun 24: NOT TESTED
 int bcp_IsAndZero(bcp p, bc a, bc b);           // check if the bitwise AND is zero, should be used together with bcp_GetVariableMask()
 unsigned bcp_OrBitCnt(bcp p, bc r, bc a, bc b);
 int bcp_IntersectionCube(bcp p, bc r, bc a, bc b); // returns 0, if there is no intersection
@@ -218,7 +229,6 @@ void bcp_DoBCLMultiCubeContainment(bcp p, bcl l);
 /* bcltautology.c */
 
 int bcp_is_bcl_partition(bcp p, bcl l);
-
 int bcp_IsBCLTautology(bcp p, bcl l);
 
 
@@ -232,6 +242,7 @@ int bcp_SubtractBCL(bcp p, bcl a, bcl b, int is_mcc);  // if is_mcc is 0, then t
 bcl bcp_NewBCLComplementWithSubtract(bcp p, bcl l);  // faster than with cofactor
 bcl bcp_NewBCLComplementWithCofactor(bcp p, bcl l); // slow!
 bcl bcp_NewBCLComplement(bcp p, bcl l);         // calls bcp_NewBCLComplementWithSubtract();
+bcl bcp_NewBCLComplementWithIntersection(bcp p, bcl l);
 int bcp_ComplementBCL(bcp p, bcl l);            // in place complement calculation
 
 
