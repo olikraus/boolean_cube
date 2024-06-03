@@ -361,6 +361,11 @@ int main(int argc, char **argv)
       expressionTest();
       argv++;
     }
+    else if ( strcmp(*argv, "-speed") == 0 )
+    {
+      speedTest(17);
+      argv++;
+    }
     else if ( strcmp(*argv, "-v") == 0 )
     {
       bc_log_level++;

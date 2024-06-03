@@ -214,7 +214,7 @@ void bcp_GetSingleVarCube(bcp p, bc dest, int pos, int val)
 /*
 	create a bcl with one cube for each positive or negative variable
 */
-int bcp_AddBCLCubesWithSingleVariables(bcp p, bcp result, bc src_cube)
+int bcp_AddBCLCubesWithSingleVariables(bcp p, bcl result, bc src_cube)
 {
   int i;
   int val;
@@ -252,59 +252,30 @@ bcl bcp_NewBCLVariableIntersection(bcp p, bcl l)
     return result;		// not clear whther this is the correct value
   if ( bcp_AddBCLCubesWithSingleVariables(p, cl, bcp_GetBCLCube(p, l, 0)) == 0 )
     return bcp_DeleteBCL(p, result), bcp_DeleteBCL(p, cl), NULL;
-  bcp_AddBCLCubesByBCL( result, cl );
-  for( i = 1; i < bcl->cnt; i++ )
+  bcp_AddBCLCubesByBCL(p, result, cl );
+  for( i = 1; i < l->cnt; i++ )
   {
     bcp_ClearBCL(p, cl);
     if ( bcp_AddBCLCubesWithSingleVariables(p, cl, bcp_GetBCLCube(p, l, i)) == 0 )
       return bcp_DeleteBCL(p, result), bcp_DeleteBCL(p, cl), NULL;
     if ( bcp_IntersectionBCL(p, result, cl) == 0 )
       return bcp_DeleteBCL(p, result), bcp_DeleteBCL(p, cl), NULL;
+    logprint(4, "bcp_NewBCLVariableIntersection, step %d/%d", i+1, l->cnt );
   }
   return bcp_DeleteBCL(p, cl), result;
 }
 
 
-/*
-  apply distribution law
-*/
-bcl bcp_NewBCLIntersectionCubes(bcp p, bcl l)
-{
-  int i, j;
-  bcl result = bcp_NewBCL(p);
-  bc c;
-  bc a;
-  if ( result == NULL )
-    return NULL;
-  bcp_StartCubeStackFrame(p);
-
-  logprint(2, "bcp_NewBCLComplementWithIntersection, bcl size=%d", l->cnt );
-
-  c = bcp_GetTempCube(p);
-
-  for( i = 0; i < l->cnt; i++ )
-  {
-    a = bcp_GetBCLCube(p, l, i);
-    for( j = i+1; j < l->cnt; j++ )
-    {
-      if ( bcp_IntersectionCube(p, c, a, bcp_GetBCLCube(p, l, j)) ) // returns 0, if there is no intersection
-      {
-	if ( bcp_AddBCLCubeByCube(p, result, c) < 0 ) // if a is not subcube of any existing cube, then add the modified a cube to the list
-	  return bcp_EndCubeStackFrame(p), bcp_DeleteBCL(p, result), NULL;  // memory error	  
-      }
-    }
-    logprint(4, "bcp_NewBCLComplementWithIntersection, step %d/%d result size=%d", i+1, l->cnt,  result->cnt);
-  }
-  bcp_EndCubeStackFrame(p);
-  bcp_DoBCLSingleCubeContainment(p, result);
-  return result;
-}
 
 bcl bcp_NewBCLComplementWithIntersection(bcp p, bcl l)
 {
   bcl result;
+  logprint(2, "bcp_NewBCLComplementWithIntersection, bcl size=%d", l->cnt );
+  
   bcp_InvertCubesBCL(p, l);
-  result = bcp_NewBCLIntersectionCubes(p, l);
+  
+  
+  result = bcp_NewBCLVariableIntersection(p, l);
   if ( result != NULL )
     bcp_DoBCLMultiCubeContainment(p, result);
   bcp_InvertCubesBCL(p, l);

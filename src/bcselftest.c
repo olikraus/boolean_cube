@@ -209,6 +209,7 @@ void speedTest(int cnt)
   clock_t t0, t1;
   clock_t t_cofactor = 0;
   clock_t t_subtract = 0;
+  clock_t t_intersection = 0;
   bcp p = bcp_New(cnt);
   bcl a = bcp_NewBCLWithRandomTautology(p, cnt+2, cnt);
   bcl b = bcp_NewBCLWithRandomTautology(p, cnt+2, cnt);
@@ -309,6 +310,7 @@ void speedTest(int cnt)
 
   t_subtract = 0;
   t_cofactor = 0;
+  t_intersection = 0;
 
   t0 = clock();
   x = bcp_NewBCLComplementWithSubtract(p, a);
@@ -321,7 +323,14 @@ void speedTest(int cnt)
   t1 = clock();  
   bcp_DeleteBCL(p, x);
   t_cofactor += t1-t0;
-  
+
+  t0 = clock();
+  x = bcp_NewBCLComplementWithIntersection(p, a);
+  t1 = clock();  
+  bcp_DeleteBCL(p, x);
+  t_intersection += t1-t0;
+
+
   t0 = clock();
   x = bcp_NewBCLComplementWithSubtract(p, b);
   t1 = clock();  
@@ -334,13 +343,22 @@ void speedTest(int cnt)
   bcp_DeleteBCL(p, x);
   t_cofactor += t1-t0;
 
+  t0 = clock();
+  x = bcp_NewBCLComplementWithIntersection(p, b);
+  t1 = clock();  
+  bcp_DeleteBCL(p, x);
+  t_intersection += t1-t0;
+
   printf("complement with substract total %ld\n", t_subtract);
   printf("complement with cofactor total %ld\n", t_cofactor);
+  printf("complement with intersection total %ld\n", t_intersection);
   
+  /*
   if ( t_subtract < t_cofactor )
     printf("bcp_NewBCLComplementWithSubtract is faster\n");
   else
     printf("bcp_NewBCLComplementWithCofactor is faster\n");
+    */
 
   
   bcp_DeleteBCL(p,  a);
