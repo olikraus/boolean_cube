@@ -3,10 +3,10 @@
 
 COPATH = ../../c-object/co
 
-# CFLAGS = -O4 -pg -march=silvermont  -Wall  -I$(COPATH) -I.
+CFLAGS = -g -pg -march=silvermont  -Wall  -I$(COPATH) -I.
 
 # CFLAGS = -g -Wall -march=silvermont -fsanitize=address -I$(COPATH) -I.
-CFLAGS = -g -Wall -march=silvermont -I$(COPATH) -I.
+#CFLAGS = -g -Wall -march=silvermont -I$(COPATH) -I.
 
 SRC = bcutil.c bcp.c bcube.c bclcore.c bcselftest.c bccofactor.c 
 SRC += bclcontainment.c bcltautology.c bclsubtract.c 

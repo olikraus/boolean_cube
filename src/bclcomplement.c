@@ -61,8 +61,8 @@ bcl bcp_NewBCLComplementWithSubtract(bcp p, bcl l)
 
 bcl bcp_NewBCLComplement(bcp p, bcl l)
 {
-  return bcp_NewBCLComplementWithIntersection(p, l);
-  //return bcp_NewBCLComplementWithSubtract(p, l);
+  //return bcp_NewBCLComplementWithIntersection(p, l);
+  return bcp_NewBCLComplementWithSubtract(p, l);
 }
 
 int bcp_ComplementBCL(bcp p, bcl l)
@@ -236,9 +236,58 @@ int bcp_AddBCLCubesWithSingleVariables(bcp p, bcl result, bc src_cube)
 }
 
 /*
+  special version for 
+    int bcp_IntersectionBCLs(bcp p, bcl result, bcl a, bcl b)
+*/
+int bcp_IntersectionBCLsForComplement(bcp p, bcl result, bcl a, bcl b, bcl offSet)
+{
+  int i, j;
+  bc tmp;
+  
+  bcp_StartCubeStackFrame(p);
+  tmp = bcp_GetTempCube(p);
+  
+  assert(result != a);
+  assert(result != b);
+  
+  bcp_ClearBCL(p, result);
+  for( i = 0; i < b->cnt; i++ )
+  {
+    for( j = 0; j < a->cnt; j++ )
+    {
+      if ( bcp_IntersectionCube(p, tmp, bcp_GetBCLCube(p, a, j), bcp_GetBCLCube(p, b, i)) )
+      {
+        if ( bcp_AddBCLCubeByCube(p, result, tmp) < 0 )
+          return bcp_EndCubeStackFrame(p), 0;
+      }
+    }
+  }
+  
+  bcp_DoBCLSingleCubeContainment(p, result);
+  bcp_DoBCLExpandWithOffSet(p, result, offSet);
+
+
+  bcp_EndCubeStackFrame(p);  
+  return 1;
+}
+
+int bcp_IntersectionBCLForComplement(bcp p, bcl a, bcl b, bcl offSet)
+{
+  bcl result = bcp_NewBCL(p);
+  
+  if ( bcp_IntersectionBCLsForComplement(p, result, a, b, offSet) == 0 )
+    return bcp_DeleteBCL(p, result), 0;
+  
+  bcp_CopyBCL(p, a, result);
+  bcp_DeleteBCL(p, result);
+  return 1;
+}
+
+
+/*
   apply distribution law
 */
-bcl bcp_NewBCLVariableIntersection(bcp p, bcl l)
+bcl bcp_NewBCLVariableIntersection(bcp p, bcl l, bcl offSet)
 {
   bcl result = bcp_NewBCL(p);
   bcl cl;
@@ -258,9 +307,9 @@ bcl bcp_NewBCLVariableIntersection(bcp p, bcl l)
     bcp_ClearBCL(p, cl);
     if ( bcp_AddBCLCubesWithSingleVariables(p, cl, bcp_GetBCLCube(p, l, i)) == 0 )
       return bcp_DeleteBCL(p, result), bcp_DeleteBCL(p, cl), NULL;
-    if ( bcp_IntersectionBCL(p, result, cl) == 0 )
+    if ( bcp_IntersectionBCLForComplement(p, result, cl, offSet) == 0 )
       return bcp_DeleteBCL(p, result), bcp_DeleteBCL(p, cl), NULL;
-    logprint(4, "bcp_NewBCLVariableIntersection, step %d/%d", i+1, l->cnt );
+    logprint(4, "bcp_NewBCLVariableIntersection, step %d/%d, result size %d", i+1, l->cnt, result->cnt );
   }
   return bcp_DeleteBCL(p, cl), result;
 }
@@ -270,15 +319,18 @@ bcl bcp_NewBCLVariableIntersection(bcp p, bcl l)
 bcl bcp_NewBCLComplementWithIntersection(bcp p, bcl l)
 {
   bcl result;
+  bcl ll = bcp_NewBCLByBCL(p, l);
+  if ( ll == NULL )
+    return NULL;
   logprint(2, "bcp_NewBCLComplementWithIntersection, bcl size=%d", l->cnt );
   
-  bcp_InvertCubesBCL(p, l);
-  
-  
-  result = bcp_NewBCLVariableIntersection(p, l);
-  if ( result != NULL )
-    bcp_DoBCLMultiCubeContainment(p, result);
-  bcp_InvertCubesBCL(p, l);
+  bcp_InvertCubesBCL(p, ll);
+  result = bcp_NewBCLVariableIntersection(p, ll, l);
+  //if ( result != NULL )
+  //  bcp_DoBCLMultiCubeContainment(p, result);
+  //if ( result != NULL )
+  //  bcp_MinimizeBCL(p, result);
+  bcp_DeleteBCL(p, ll);
   return result;
 }
 

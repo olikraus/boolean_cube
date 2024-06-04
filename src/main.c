@@ -320,6 +320,7 @@ void help()
   puts("-h                              Print this help.");
   puts("-v                              Increase log level. Use multiple '-v' for more details");
   puts("-test                           Execute internal test procedure. Requires debug version of this executable.");
+  puts("-speed                          Execute speed test procedure.");
   puts("-dimacscnf <dimacs cnf file>    SAT solver for the given DIMACS file.");
   puts("-parse <boolean expression>     Parse a given boolean expression.");
   puts("-ojpp                           Pretty print JSON output for the next '-json' command.");

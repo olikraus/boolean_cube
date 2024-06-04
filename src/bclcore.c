@@ -408,7 +408,7 @@ void bcp_SetBCLAllDCToZero(bcp p, bcl l)
   {
     /* initially fill the mask with all DC */
     
-    mask = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 3));
+    mask = dc;
 
     /* find columns where we only have dc (bitpattern 11) in one column */
     
@@ -435,9 +435,11 @@ void bcp_SetBCLAllDCToZero(bcp p, bcl l)
       
       c = bcp_GetBCLCube(p,l,i);
       // convert the dc's (11) to zero (01), but ensure, that the unused variables stay at dc by or-ing the illegal cube 
-      _mm_storeu_si128(c+j, _mm_or_si128(_mm_and_si128(mask, _mm_loadu_si128(c+j)), _mm_loadu_si128(illegal_cube+j)) );
+      // _mm_storeu_si128(c+j, _mm_or_si128(_mm_and_si128(mask, _mm_loadu_si128(c+j)), _mm_loadu_si128(illegal_cube+j)) );
+      _mm_storeu_si128(c+j, _mm_and_si128(mask, _mm_loadu_si128(c+j)) );
      }
   } 
+  bcp_ShowBCL(p, l);
 }
 
 
