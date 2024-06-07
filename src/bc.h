@@ -195,7 +195,8 @@ bcl bcp_NewBCLByString(bcp p, const char *s);   // create a bcl from a CR seprat
 
 int *bcp_GetBCLVarCntList(bcp p, bcl l);
 
-void bcp_SetBCLAllDCToZero(bcp p, bcl l);
+void bcp_SetBCLFlipVariables(bcp p, bcl l);
+void bcp_SetBCLAllDCToZero(bcp p, bcl l, bcl extra_mask);
 
 
 /* bcldimacscnf.c */

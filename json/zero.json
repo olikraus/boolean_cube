@@ -1,0 +1,28 @@
+[
+  {
+    "cmd":"bcl2slot",
+    "expr":"a&b&c&d",
+    "slot":0
+  },
+  {
+    "cmd":"bcl2slot",
+    "expr":"c&d&e&f",
+    "slot":1
+  },
+  {
+    "cmd":"bcl2slot",
+    "expr":"c&d&e&f&g&h",
+    "slot":2
+  },
+  {
+    "cmd":"flipx",
+    
+    "slot":1
+  },
+  {
+    "cmd":"unused2zero0",
+    "slot":1,
+    "label0":"dc2z"
+  }
+]
+

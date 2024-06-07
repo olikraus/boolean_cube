@@ -374,7 +374,21 @@ co bc_ExecuteVector(cco in)
       else if ( p != NULL &&  strcmp(cmd, "unused2zero") == 0 )
       {
         assert(arg != NULL);
-        bcp_SetBCLAllDCToZero(p, arg);
+	/*
+		Actually, we need two arguments:
+			1) the list for which we need to convert all dc to zero and also
+			2) a mask, which prevents this zero making, e.g. a list of variables, for which the dc making is allowed
+				The mask could have one for allowed and dc for not allowed (which probably is easier to construct)
+				
+		best is to have another argument with all the variables beeing used for which the dc should be set.
+		this bcl is then used to mask the dc values
+       */
+        bcp_SetBCLAllDCToZero(p, arg, NULL);
+      }
+      else if ( p != NULL &&  strcmp(cmd, "flip") == 0 )
+      {
+        assert(arg != NULL);
+        bcp_SetBCLFlipVariables(p, arg);
       }
       else if ( p != NULL &&  strcmp(cmd, "complement") == 0 )
       {
@@ -387,6 +401,15 @@ co bc_ExecuteVector(cco in)
         assert(arg != NULL);
         printf("cmd=%s label=%s label0=%s\n", cmd, label, label0);
         bcp_ShowBCL(p, arg);
+      }
+      else if ( p != NULL &&  strcmp(cmd, "unused2zero0") == 0 )
+      {
+        assert(slot_list[0] != NULL);
+        assert(arg != NULL);
+        bcp_SetBCLAllDCToZero(p, slot_list[0], arg);   // use (expr or other slot) argument as mask, modify slot 0 
+        is_empty = 0;
+        if ( slot_list[0]->cnt == 0 )
+          is_empty = 1;
       }
       // intersection0: calculate intersection with slot 0
       // result is stored in slot 0

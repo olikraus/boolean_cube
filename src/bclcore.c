@@ -374,6 +374,33 @@ int *bcp_GetBCLVarCntList(bcp p, bcl l)
   return vcl;
 }
 
+/*
+  for each cube, flip the variables
+    01, 10 --> 11
+    11 --> 01
+
+*/
+void bcp_SetBCLFlipVariables(bcp p, bcl l)
+{
+  int i, j;
+  bc c;
+  __m128i r;
+  __m128i o = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 2));
+  __m128i dc = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 3));
+  
+  for( i = 0; i < l->cnt; i++ )
+  {
+    c = bcp_GetBCLCube(p,l,i);
+    for( j = 0; j < p->blk_cnt; j++ )
+    {
+      r = _mm_loadu_si128(c+j);
+      r = _mm_and_si128( r, _mm_slli_epi16(r,1));          // r = r & (r << 1)     this will generate 1x for DC values
+      r = _mm_and_si128( r, o);                                    // r = r & 10   this will generate 10 for DC and 00 for "10" and "01" (and also for "00")
+      r = _mm_andnot_si128(r, dc);                                // invert mask, so we have 01 for DC and 11 for all other values, the "dc" 2nd arg is just a dummy value for andnot
+      _mm_storeu_si128(c+j, r );                // store the result
+    }
+  }
+}
 
 /*
   For each column which contains only DC, replace this DC with Zero:
@@ -390,12 +417,18 @@ int *bcp_GetBCLVarCntList(bcp p, bcl l)
 
   --> second column is only DC for all terms and is replaced with zero
 
+  The extra_mask additionally is used to further restrict the DC to zero convertion:
+  If a variable is listed as 1 or 0, then the variable is not forced to zero.
+  So extra_mask should contain all variables which should not be forced to zero
+  The extra_mask itself is not modified
+  extra_mask can be NULL
+  
 */
-void bcp_SetBCLAllDCToZero(bcp p, bcl l)
+void bcp_SetBCLAllDCToZero(bcp p, bcl l, bcl extra_mask)
 {
   int i, j;
   bc c;
-  bc illegal_cube = bcp_GetBCLCube(p, p->global_cube_list, 0);
+  //bc illegal_cube = bcp_GetBCLCube(p, p->global_cube_list, 0);
   
   //__m128i z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));
   __m128i o = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 2));
@@ -411,6 +444,15 @@ void bcp_SetBCLAllDCToZero(bcp p, bcl l)
     mask = dc;
 
     /* find columns where we only have dc (bitpattern 11) in one column */
+ 
+    if ( extra_mask != NULL )
+    {
+      for( i = 0; i < extra_mask->cnt; i++ )       // do this for the extra mask
+      {
+        c = bcp_GetBCLCube(p,extra_mask,i);
+        mask = _mm_and_si128(mask, _mm_loadu_si128(c+j));
+      }
+    }
     
     for( i = 0; i < l->cnt; i++ )
     {
