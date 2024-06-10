@@ -192,7 +192,7 @@ co bc_ExecuteVector(cco in)
       if (coIsStr(o) && p != NULL )
       {
         if ( p == NULL ) { p = bcp_New(0); assert( p != NULL ); }
-        if ( strlen(coStrGet(o)) > 0 )
+          if ( strlen(coStrGet(o)) > 0 )
           p->x_not = coStrGet(o)[0];
       }
         
@@ -200,15 +200,19 @@ co bc_ExecuteVector(cco in)
       if (coIsStr(o))                     // only of the expr is a string and only of the bcl has not been assigned before
       {
         const char *expr_str = coStrGet(o);        
-        bcx x;
-        if ( p == NULL )
+        cco ignore_variables = coMapGet(cmdmap, "ignoreVars");
+        if ( ignore_variables == NULL )
         {
-          p = bcp_New(0);               // create a dummy bcp
-          assert( p != NULL );
+          bcx x;
+          if ( p == NULL )
+          {
+            p = bcp_New(0);               // create a dummy bcp
+            assert( p != NULL );
+          }
+          x = bcp_Parse(p, expr_str, 0, 1);              // no propagation required, we are just collecting the names
+          if ( x != NULL )
+              bcp_DeleteBCX(p, x);                      // free the expression tree
         }
-        x = bcp_Parse(p, expr_str, 0);              // no propagation required, we are just collecting the names
-        if ( x != NULL )
-            bcp_DeleteBCX(p, x);                      // free the expression tree
       }
       
       o = coMapGet(cmdmap, "mtvar");             // "mtvar" (minterm variables) an another alternative way to describe a bcl with a single minterm
@@ -333,7 +337,7 @@ co bc_ExecuteVector(cco in)
       {
         const char *expr_str = coStrGet(o);        
         //printf("expr: %s\n", expr_str);
-        bcx x = bcp_Parse(p, expr_str, 1);              // assumption: p already contains all variables of expr_str
+        bcx x = bcp_Parse(p, expr_str, 1, 0);              // assumption: p already contains all variables of expr_str
         if ( x != NULL )
         {
             l = bcp_NewBCLByBCX(p, x);          // create a bcl from the expression tree 

@@ -1,0 +1,18 @@
+[
+  {
+    "cmd":"bcl2slot",
+    "expr":"a&b&c&d",
+    "slot":1
+  },
+  {
+    "cmd":"bcl2slot",
+    "_comment0":"The argument for ignoreVars will be ignored, only the existence of ignoreVars is checked",
+    "ignoreVars":1,
+    "_comment1":"variables of the following expressions are ignored, so e&f are not part of the var map",
+    "_comment2":"Use & for such cases! The result will be c&d",
+    "expr":"c&d&e&f",
+    "slot":0,
+    "label0":"ignoreVar"
+  }
+]
+

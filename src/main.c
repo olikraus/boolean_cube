@@ -179,7 +179,7 @@ int main3(int argc, char **argv)
 int main4()
 {
   bcp p = bcp_New(1);
-  bcx x = bcp_Parse(p, "a&b|c&b", 1);
+  bcx x = bcp_Parse(p, "a&b|c&b", 1, 1);
   bcp_ShowBCX(p, x);
   
   
@@ -243,7 +243,7 @@ int bc_ExecuteParse(const char *s)
 {
   bcl l;
   bcp p = bcp_New(0);
-  bcx x = bcp_Parse(p, s, 1);
+  bcx x = bcp_Parse(p, s, 1, 1);
   char *expr;
     
   bcp_ShowBCX(p, x);
@@ -290,15 +290,17 @@ const char *json_input_spec =
 "copy0to       := { \"cmd\":\"copy0to\", \"slot\":<slnr>] }       Copy slot 0 to slot <slnr>\n"
 "copy0from     := { \"cmd\":\"copy0from\", <bxs>] }             Copy <bxs> to slot 0\n""setup         := { \"xend\":\";\", \"xand\":\"&\", \"xor\":\"|\", \"xnot\":\"-\", \"xtrue\":\"1\", \"xfalse\":\"0\" }  Redefine parser\n"  
 "l             := \"label\":<key> | \"label0\":<key>            Output result flags (and slot 0 content) to the output JSON map\n"
+"iv            := \"ignoreVars\":<?>                          If present, then the variables of any \"expr\" of the current cmd block are ignored\n"   
 "key           := Any ASCII String                          Use this <key> as a key of the generated output JSON map\n" 
-"bx            := \"bcl\":<bclsv> | \"expr\":<exprstr> | \"mtvar\":<mtstr>\n"
-"bxs           := \"bcl\":<bclsv> | \"expr\":<exprstr> | \"mtvar\":<mtstr> | \"slot\":<slnr>\n"
+"bx            := \"bcl\":<bclsv> | \"expr\":<exprstr> | \"mtvar\":<mtstr> | <iv>\n"
+"bxs           := \"bcl\":<bclsv> | \"expr\":<exprstr> | \"mtvar\":<mtstr> | \"slot\":<slnr> | <iv>\n"
 "bclsv         := <bclstr> | <bclvec>\n"
 "bclstr        := <cubestr> <cr> <cubestr> <cr> ... <cubestr>\n"
 "bclvec        := [ <cubestr> ]\n"
 "cubestr       := String which contains only '0', '1', 'x' and '-'\n"
 "slnr          := Integer number between 0 and 9\n"
 ;
+
 
 const char *json_output_spec = 
 "JSON Output := { \"key\":<rblk> }         The keys are taken from label/label0 values of the input JSON\n"

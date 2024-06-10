@@ -421,7 +421,7 @@ static void expression_test_sub(const char *cubes, const char *expression, int i
 
   printf("Parse test '%s'\n", expression);
   p = bcp_New(0);
-  x = bcp_Parse(p, expression, is_not_propagation);
+  x = bcp_Parse(p, expression, is_not_propagation, 1);
   assert(x != NULL);
   bcp_UpdateFromBCX(p);
   
@@ -440,7 +440,7 @@ static void expression_test_sub(const char *cubes, const char *expression, int i
   assert( expr2 != NULL );
   bcp_DeleteBCL(p, lx);
   printf("Back conversion '%s' --> '%s'\n", expression, expr2);
-  x = bcp_Parse(p, expr2, is_not_propagation);  // parse again
+  x = bcp_Parse(p, expr2, is_not_propagation, 1);  // parse again
   assert( x != NULL );
   assert( p->var_cnt == p->x_var_cnt);          // the variable count must not change
 

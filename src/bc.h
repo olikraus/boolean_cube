@@ -198,6 +198,8 @@ int *bcp_GetBCLVarCntList(bcp p, bcl l);
 void bcp_SetBCLFlipVariables(bcp p, bcl l);
 void bcp_SetBCLAllDCToZero(bcp p, bcl l, bcl extra_mask);
 
+void bcp_AndElementsBCL(bcp p, bcl l, bc result);
+
 
 /* bcldimacscnf.c */
 
@@ -286,7 +288,7 @@ int bcp_AddVar(bcp p, const char *s);   // used in bcexpression.c but also in bc
 //int bcp_AddVarsFromBCX(bcp p, bcx x);
 //int bcp_BuildVarList(bcp p);
 
-bcx bcp_Parse(bcp p, const char *s, int is_not_propagation);
+bcx bcp_Parse(bcp p, const char *s, int is_not_propagation, int is_register_variables);
 
 void bcp_ShowBCX(bcp p, bcx x);
 void bcp_PrintBCX(bcp p, bcx x);

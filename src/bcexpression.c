@@ -293,7 +293,7 @@ bcx bcp_ParseOR(bcp p, const char **s)
 /*============================================================*/
 
 /*
-  add variable "s" to p->var_map and assign a position number has value to the variable name
+  add variable "s" to p->var_map and assign the position as value to the variable name
     key: variable name
     value: position number, starting with 0
 */
@@ -310,6 +310,13 @@ int bcp_AddVar(bcp p, const char *s)
   return coMapAdd(p->var_map, s, coNewDbl(p->x_var_cnt++));
 }
 
+/*
+  Description:
+    Register all variables in the expression "x" into the boolean cube problem p
+  Args:
+    p           Boolean Problem Object 
+    x           Expression
+*/
 int bcp_AddVarsFromBCX(bcp p, bcx x)
 {
   if ( x == NULL )
@@ -433,7 +440,7 @@ static void bcp_PropagateNotBCX(bcp p, bcx x)
     1: apply de morgan rules to the expression tree and move all not to the leafs of the tree (strongly recommended!!!)
 
 */
-bcx bcp_Parse(bcp p, const char *s, int is_not_propagation)
+bcx bcp_Parse(bcp p, const char *s, int is_not_propagation, int is_register_variables)
 {
   bcx x;
   // prepare the expression, so that we can start with the parsing
@@ -446,8 +453,9 @@ bcx bcp_Parse(bcp p, const char *s, int is_not_propagation)
   // bcp_PrintBCX(p, x);puts("");
   
   // add all variables from the expression to problem record
-  if ( bcp_AddVarsFromBCX(p, x) == 0 )
-    return bcp_DeleteBCX(p, x), NULL;
+  if ( is_register_variables )
+    if ( bcp_AddVarsFromBCX(p, x) == 0 )
+      return bcp_DeleteBCX(p, x), NULL;
 
   // move any "not" to the leafs by applying de morgan law
   // this will avoid calculation of complements inside bcl bcp_NewBCLByBCX(bcp p, bcx x)
@@ -588,13 +596,17 @@ bcl bcp_NewBCLById(bcp p, int is_not, const char *identifier)
     cube_pos = bcp_AddBCLCube(p, l);
     if ( cube_pos >= 0 )
     {
-      var_pos_co = coMapGet(p->var_map, identifier);
+      var_pos_co = coMapGet(p->var_map, identifier);            // find the variable
       if ( var_pos_co != NULL )
       {
         assert( coIsDbl(var_pos_co) );
         var_pos = (int)coDblGet(var_pos_co);
         assert( var_pos < p->var_cnt ); // check whether bcp_UpdateFromBCX() was called
         bcp_SetCubeVar(p, bcp_GetBCLCube(p, l, cube_pos), var_pos, is_not?1:2);
+        return l;
+      }
+      else      // if the variable is not available, then just return the tautology cube: If we use expressions as variable list, then use the "AND" operation only ("OR" will not work)
+      {
         return l;
       }
     }
@@ -641,7 +653,7 @@ bcl bcp_NewBCLByBCX(bcp p, bcx x)
         //puts(" AND");
         //bcp_ShowBCL(p, ll);
         
-        bcp_IntersectionBCL(p, l, ll);
+        bcp_IntersectionBCL(p, l, ll);  // bclintersection.c
         //puts("-->");
         //bcp_ShowBCL(p, l);
         bcp_DeleteBCL(p, ll);
@@ -656,15 +668,15 @@ bcl bcp_NewBCLByBCX(bcp p, bcx x)
       return l;
     case BCX_TYPE_OR:
       x = x->down;
-      l = bcp_NewBCLByBCX(p, x);
+      l = bcp_NewBCLByBCX(p, x);        // l might contain the tautology cube if a variable is unknown
       x = x->next;
       while( x != NULL )
       {
-        bcl ll = bcp_NewBCLByBCX(p, x);
+        bcl ll = bcp_NewBCLByBCX(p, x);         // ll might contain the tautology cube if a variable is unknown
         assert( ll != NULL );
-        bcp_AddBCLCubesByBCL(p, l, ll);
+        bcp_AddBCLCubesByBCL(p, l, ll);     
         bcp_DeleteBCL(p, ll);
-        bcp_DoBCLSingleCubeContainment(p, l);
+        bcp_DoBCLSingleCubeContainment(p, l);   // if the tautology cube is included in l, then all other cubes are removed... so do not use OR for variable lists
         x = x->next;
       }
       if ( is_not )

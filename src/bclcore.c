@@ -481,7 +481,31 @@ void bcp_SetBCLAllDCToZero(bcp p, bcl l, bcl extra_mask)
       _mm_storeu_si128(c+j, _mm_and_si128(mask, _mm_loadu_si128(c+j)) );
      }
   } 
-  bcp_ShowBCL(p, l);
+  //bcp_ShowBCL(p, l);
 }
 
+/*
+  Execute AND operation of all elements in the BCL.
+  If the result is 
+    11 then the variable is DC for all elements (variable not used)
+    01  then the variable is zero or DC in the elements (variable is unate)
+    10 then the variable is one or DC in the elements (variable is unate)
+    00  then the variable exists as one and zero (positive and negative) in the list
+
+*/
+void bcp_AndElementsBCL(bcp p, bcl l, bc result)
+{
+  int i, j;
+  __m128i r;
+  bcp_CopyGlobalCube(p, result, 3);
+  for( j = 0; j < p->blk_cnt; j++ )
+  {    
+    r = _mm_loadu_si128(result+j);
+    for( i = 0; i < l->cnt; i++ )
+    {
+      r = _mm_and_si128(r, _mm_loadu_si128(bcp_GetBCLCube(p,l,i)+j));
+    }
+    _mm_storeu_si128(result+j, r);
+  }
+}
 
