@@ -375,7 +375,7 @@ co bc_ExecuteVector(cco in)
         assert(arg != NULL);
         bcp_MinimizeBCL(p, arg);
       }
-      else if ( p != NULL &&  strcmp(cmd, "unused2zero") == 0 )
+      else if ( p != NULL &&  strcmp(cmd, "unused2zero") == 0 ) // obsolete, replaced by group2zero0
       {
         assert(arg != NULL);
 	/*
@@ -406,7 +406,7 @@ co bc_ExecuteVector(cco in)
         printf("cmd=%s label=%s label0=%s\n", cmd, label, label0);
         bcp_ShowBCL(p, arg);
       }
-      else if ( p != NULL &&  strcmp(cmd, "unused2zero0") == 0 )
+      else if ( p != NULL &&  strcmp(cmd, "unused2zero0") == 0 )        // obsolete, replaced by group2zero0
       {
         assert(slot_list[0] != NULL);
         assert(arg != NULL);
@@ -434,6 +434,12 @@ co bc_ExecuteVector(cco in)
         assert(arg != NULL);
         bcp_AddBCLCubesByBCL(p, slot_list[0], arg);   // a = a union b 
         bcp_DoBCLSingleCubeContainment(p, slot_list[0]);        
+      }
+      else if ( p != NULL &&  strcmp(cmd, "group2zero0") == 0 )
+      {
+        assert(slot_list[0] != NULL);
+        assert(arg != NULL);
+        bcl_ExcludeBCLVars(p, slot_list[0], arg);   // use the variable group in arg to mask and exclude variables in slot 0
       }
       else if ( p != NULL &&  strcmp(cmd, "subtract0") == 0 )
       {

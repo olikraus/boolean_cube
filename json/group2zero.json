@@ -1,0 +1,40 @@
+[
+  {
+    "_comment":"this is a group of three variables",
+    "ignoreVars":1,
+    "cmd":"bcl2slot",
+    "expr":"a1&a2&a3",
+    "slot":1
+  },
+  {
+    "_comment0":"this is just an expression to add some variables to the pool, note that a2 is added here",
+    "cmd":"bcl2slot",
+    "expr":"c&d&a2",
+    "slot":0
+  },
+  {
+    "_comment0":"test 1: nothing should happen here",
+    "cmd":"bcl2slot",
+    "expr":"c",
+    "slot":0
+  },
+  {
+    "cmd":"group2zero0",
+    "slot":1,
+    "label0":"test1"
+  },
+  {
+    "_comment0":"test 2: variables are forced to zero, expected is, that a2 appears negated, but not a3 which is not used at all",
+    "cmd":"bcl2slot",
+    "expr":"c&a1",
+    "slot":0
+  },
+  {
+    "cmd":"group2zero0",
+    "slot":1,
+    "_comment0":"test 2: expected output: c&-a2&a1",
+    "label0":"test2"
+  }
+  
+]
+

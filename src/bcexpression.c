@@ -819,3 +819,119 @@ char *bcp_GetExpressionBCL(bcp p, bcl l)
   
   return s;
 }
+
+/*============================================================*/
+/*
+  Background:
+    There are cases, where variables do exclude each other.
+    Let's assume a1, a2, a3, a4
+    If the input clause is "a1", then actually it means "a1" but not a2, a3 and a4, so the correct
+    expression would be "a1 & !a2 & !a3 & !a4"
+    The same is true for "a1&a3": In this case the actual meaning is "a1 & !a2 & a3 & !a4"
+
+    So the idea is: With all variables of a group of variables, where the variables are not used in the expression: Set those variables to "01" (zero)
+    This requires a SOP representation in the BCL (which usually should be the case)
+
+    If such a group is combined with other variables (which is usually the case), then the above "nullifing" should be applied.
+    However if there is no such group, then nothing should happen.
+
+    This leads to the following pseudo code:
+
+    input: BCL, group of variables
+
+    used var group = a list of all variables of group, which are used anywhere in the given BCL 
+    if this list is not empty:
+      for each cube in the given BCL
+        with all variables of the group, which are NOT part of used var group
+          set the varibale to 01 in the current cube
+        
+
+*/
+
+int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp)
+{
+  bc l_var;
+  bc grp_var;
+  bc c;
+  int is_any_var_used;
+  int i, j;
+  int grp_var_cnt = 0;
+  __m128i mask;
+
+  
+  bcp_StartCubeStackFrame(p);
+  l_var = bcp_GetTempCube(p);
+  grp_var = bcp_GetTempCube(p);
+  
+  
+  if ( l_var == NULL || grp_var == NULL )
+    return bcp_EndCubeStackFrame(p), 0;
+
+  /* get the unate/binate status of both lists */
+  bcp_AndElementsBCL(p, l, l_var);
+  bcp_AndElementsBCL(p, grp, grp_var);
+
+  bcp_ShowBCL(p, grp);
+  bcp_ShowBCL(p, l);
+  
+  /* STEP 1: find out, whether any variables from grp_var are used in l_var */
+  is_any_var_used = 0;
+  for( i = 0; i < p->var_cnt; i++ )
+  {
+    if ( bcp_GetCubeVar(p, grp_var, i) != 3 )   // if the variable is in the group, then...
+    {
+      grp_var_cnt++;
+      if ( bcp_GetCubeVar(p, l_var, i) != 3 ) // if the same variable is also used in the BCL
+      {
+        is_any_var_used = 1;
+        break;
+      }
+    }
+  }
+  
+  if ( is_any_var_used == 0 )           
+  {
+    logprint(2, "bcl_ExcludeBCLVars: No group variable used (%d vars in the group)", grp_var_cnt);
+
+    return bcp_EndCubeStackFrame(p), 1; // none of the variables of the group are used, so keep the BCL as it is
+  }
+  logprint(2, "bcl_ExcludeBCLVars: Some group variables used (%d vars in the group)", grp_var_cnt);
+    
+  /* STEP 2: Calculate "and" mask */
+  /* it this point, some variables of the group are used */
+  /* goal is now to force variables in BCL to "01", which are previoulsy not used in the BCL ("11") */
+  /* for this goal, we will reuse grp_var as a mask for the BCL: */
+  /* group vars, which are used in the BCL, will become "11", leaving those variables untouched */
+  /* group vars, which are not used in the BCL, will become "01", forcing those vars to zero ("01") */
+  for( i = 0; i < p->var_cnt; i++ )
+  {
+    if ( bcp_GetCubeVar(p, grp_var, i) != 3 )   // if the variable is in the group, then...
+    {
+      if ( bcp_GetCubeVar(p, l_var, i) != 3 ) // if the same variable is also used in the BCL
+      {
+        bcp_SetCubeVar(p, grp_var, i, 3);       // the group var is used in BCL, so revert this to DC
+      }
+      else
+      {
+        bcp_SetCubeVar(p, grp_var, i, 1);       // the group var is not used in BCL, so force the value to "01"
+      }
+    }
+  }
+  
+  /* STEP 3: apply "and" mask */
+  /* now the mask is inside grp_var and we can just "and" the mask with all cubes in BCL */
+  for( j = 0; j < p->blk_cnt; j++ )
+  {
+    mask = _mm_loadu_si128(grp_var+j);  // grp_var now contains the mask for the BCL cubes
+    for( i = 0; i < l->cnt; i++ )
+    {
+      c = bcp_GetBCLCube(p,l,i);
+      _mm_storeu_si128(c+j, _mm_and_si128(_mm_loadu_si128(c+j), mask)); // force the unused vars from the group to zero
+    }
+  }
+  
+
+  bcp_EndCubeStackFrame(p);
+  return 1;
+}
+
