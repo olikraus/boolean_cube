@@ -299,7 +299,7 @@ const char *json_input_spec =
 "bclstr        := <cubestr> <cr> <cubestr> <cr> ... <cubestr>\n"
 "bclvec        := [ <cubestr> ]\n"
 "cubestr       := String which contains only '0', '1', 'x' and '-'\n"
-"slnr          := Integer number between 0 and 9\n"
+"slnr          := Integer number between 0 and " SLOT_CNT_STR "\n"
 ;
 
 
@@ -321,7 +321,7 @@ const char *json_output_spec =
 
 void help()
 {
-  puts("Boolean Cube Calculator");
+  puts("Boolean Cube Calculator, " __DATE__);
   puts("-h                              Print this help.");
   puts("-v                              Increase log level. Use multiple '-v' for more details");
   puts("-test                           Execute internal test procedure. Requires debug version of this executable.");

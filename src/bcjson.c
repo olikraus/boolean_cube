@@ -104,7 +104,6 @@
 #include <time.h>
 #include <assert.h>
 
-#define SLOT_CNT 10
 
 /*
   takes a JSON input (as co object) and produces a JSON output (again as co object)

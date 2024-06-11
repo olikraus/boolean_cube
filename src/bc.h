@@ -304,6 +304,12 @@ int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp);
 
 /* bcjson.c */
 
+#define SLOT_CNT 99
+#define CREATE_STR(a) #a
+#define CREATE_STR2(a) CREATE_STR(a)
+#define SLOT_CNT_STR CREATE_STR2(SLOT_CNT)
+
+
 int bc_ExecuteJSON(FILE *in_fp, FILE *out_fp, int isCompactJSONOutput);
 
 

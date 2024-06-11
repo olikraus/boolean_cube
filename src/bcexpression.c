@@ -871,8 +871,8 @@ int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp)
   bcp_AndElementsBCL(p, l, l_var);
   bcp_AndElementsBCL(p, grp, grp_var);
 
-  bcp_ShowBCL(p, grp);
-  bcp_ShowBCL(p, l);
+  //bcp_ShowBCL(p, grp);
+  //bcp_ShowBCL(p, l);
   
   /* STEP 1: find out, whether any variables from grp_var are used in l_var */
   is_any_var_used = 0;
