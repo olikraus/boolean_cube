@@ -158,7 +158,7 @@ The flags are:
  - "subset":  1 if slot 0 is subset of/equal with the given slot n for "equal0" cmd
  - "superset":  1 if slot 0 is superset of/equal with the given slot n for "equal0" cmd
 
-Slot 0 is equal to slot n of subset and superset are both set to 1.
+Slot 0 content is equal to slot n content if subset and superset are both set to 1.
  
  
  
