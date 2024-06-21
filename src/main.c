@@ -273,7 +273,7 @@ int bc_ExecuteParse(const char *s)
 
 const char *json_input_spec = 
 "JSON Input    := [ <block> ]\n"
-"block         := <bcl2slot> |  <show> | <minimize> | <intersection0> | <subtract0> | <equal0> | <exchange0> | <copy0> | <setup>\n"
+"block         := <bcl2slot>|<show>|<minimize>|<complement>|<group2zero0>|<intersection0>|<subtract0>|<equal0>|<exchange0>|<copy0to>|<copy0from>|<setup>\n"
 "bcl2slot      := { \"cmd\":\"bcl2slot\", <bx>, \"slot\":<slnr> } Copy the given input <bx> into a slot with number <slnr>\n"
 "show          := { \"cmd\":\"show\", <bxs>  }                  Show the content of <bxs>\n"
 "minimize      := { \"cmd\":\"minimize\", \"slot\":<slnr>  }      Minimize the content of the specified slot\n"
