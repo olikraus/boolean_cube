@@ -1,0 +1,33 @@
+[
+  {
+    "_comment0":"master filter / reference operand in slot 1",
+    "cmd":"bcl2slot",
+    "expr":"F1&IN",
+    "slot":1
+  },
+  {
+    "_comment0":"test against F1&M1&IN",
+    "cmd":"bcl2slot",
+    "expr":"F1&M1&IN",
+    "slot":0
+  },
+  {
+    "cmd":"intersection0",
+    "slot":1,
+    "label0": "intersection F1&IN and F1&M1&IN"
+  },
+  {
+    "_comment0":"test against F1&M1&US",
+    "cmd":"bcl2slot",
+    "expr":"F1&M1&US",
+    "slot":0
+  },
+  {
+    "cmd":"intersection0",
+    "slot":1,
+    "label0": "intersection F1&IN and F1&M1&US"
+  }
+
+
+]
+

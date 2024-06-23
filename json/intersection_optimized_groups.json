@@ -1,0 +1,71 @@
+[
+  {
+    "_comment":"F1, F2, F3",
+    "ignoreVars":1,
+    "cmd":"bcl2slot",
+    "expr":"F1&F2&F3",
+    "slot":5
+  },
+  {
+    "_comment":"M1, M2",
+    "ignoreVars":1,
+    "cmd":"bcl2slot",
+    "expr":"M1&M2",
+    "slot":6
+  },
+  {
+    "_comment0":"IN, DE, US, CN",
+    "ignoreVars":1,
+    "cmd":"bcl2slot",
+    "expr":"IN&DE&US&CN",
+    "slot":7
+  },
+  {
+    "_comment0":"master filter",
+    "cmd":"bcl2slot",
+    "expr":"F1&IN",
+    "slot":0
+  },
+  {
+    "cmd":"group2zero0",
+    "slot":5
+  },
+  {
+    "cmd":"group2zero0",
+    "slot":6
+  },
+  {
+    "cmd":"group2zero0",
+    "slot":7
+  },
+  {
+    "_comment0":"reference operand in slot 1",
+    "cmd":"copy0to",
+    "slot":1
+  },
+  {
+    "_comment0":"test against F1&M1&IN",
+    "cmd":"bcl2slot",
+    "expr":"F1&M1&IN",
+    "slot":0
+  },
+  {
+    "cmd":"intersection0",
+    "slot":1,
+    "label0": "intersection F1&IN and F1&M1&IN"
+  },
+  {
+    "_comment0":"test against F1&M1&US",
+    "cmd":"bcl2slot",
+    "expr":"F1&M1&US",
+    "slot":0
+  },
+  {
+    "cmd":"intersection0",
+    "slot":1,
+    "label0": "intersection F1&IN and F1&M1&US"
+  }
+
+
+]
+
