@@ -438,7 +438,7 @@ co bc_ExecuteVector(cco in)
       {
         assert(slot_list[0] != NULL);
         assert(arg != NULL);
-        bcl_ExcludeBCLVars(p, slot_list[0], arg);   // use the variable group in arg to mask and exclude variables in slot 0
+        bcl_ExcludeBCLVars(p, slot_list[0], arg);   // use the variable group in arg to mask and exclude variables in slot 0, see in bcexpression.c
       }
       else if ( p != NULL &&  strcmp(cmd, "subtract0") == 0 )
       {
