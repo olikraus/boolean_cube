@@ -1,0 +1,23 @@
+[
+  {
+    "cmd":"bcl2slot",
+    "expr":"(a&b&-c)|(-b&d)",
+	"label0":"input",
+    "slot":0
+  },
+  {
+    "cmd":"bcl2slot",
+    "expr":"e",
+    "slot":1
+  },
+  {
+	"_comment0":"'and' supports any slot, but label0 will anly show slot 0",
+	"_comment1":"'-' variable is not used",
+	"_comment2":"'1' variable is unate (appears only positive)",
+	"_comment3":"'0' variable is unate (appears only negative)",
+	"_comment4":"'x' variable is binate (appears positive and negative)",
+    "cmd":"and",
+	"label0":"unate"
+  }
+]
+
