@@ -509,3 +509,20 @@ void bcp_AndElementsBCL(bcp p, bcl l, bc result)
   }
 }
 
+/*
+	Same as bcp_AndElementsBCL, but will put the result into l
+*/
+void bcp_AndBCL(bcp p, bcl l)
+{
+  bc c;
+  int pos;
+  bcp_StartCubeStackFrame(p);
+  c = bcp_GetTempCube(p);
+  assert( c != NULL );
+  bcp_AndElementsBCL(p, l, c);
+  bcp_ClearBCL(p, l);
+  pos = bcp_AddBCLCubeByCube(p, l, c);	// can't fail if l is not empty
+  assert( pos >= 0 );
+  bcp_EndCubeStackFrame(p);
+} 
+

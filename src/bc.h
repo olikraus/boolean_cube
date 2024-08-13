@@ -134,7 +134,7 @@ void bcp_Delete(bcp p);
 void bcp_CopyGlobalCube(bcp p, bc r, int pos);
 void bcp_StartCubeStackFrame(bcp p);
 void bcp_EndCubeStackFrame(bcp p);
-bc bcp_GetTempCube(bcp p);
+bc bcp_GetTempCube(bcp p);	// requires bcp_StartCubeStackFrame()
 
 /* bcube.c */
 /* core functions */
@@ -199,6 +199,7 @@ void bcp_SetBCLFlipVariables(bcp p, bcl l);
 void bcp_SetBCLAllDCToZero(bcp p, bcl l, bcl extra_mask);
 
 void bcp_AndElementsBCL(bcp p, bcl l, bc result);
+void bcp_AndBCL(bcp p, bcl l);
 
 
 /* bcldimacscnf.c */

@@ -278,6 +278,7 @@ const char *json_input_spec =
 "show          := { \"cmd\":\"show\", <bxs>  }                  Show the content of <bxs>\n"
 "minimize      := { \"cmd\":\"minimize\", \"slot\":<slnr>  }      Minimize the content of the specified slot\n"
 "complement    := { \"cmd\":\"complement\", \"slot\":<slnr>  }    Complement the content of the specified slot\n"
+"and           := { \"cmd\":\"and\", \"slot\":<slnr>  }    'and' operation of all cubes of the slot and store the result cube back into the same slot\n"
 "flip          := { \"cmd\":\"flip\", \"slot\":<slnr>  }          one&zero will become 'not used', 'not used' will be zero\n"
 "unused2zero   := { \"cmd\":\"unused2zero\", \"slot\":<slnr>  }   Force don't care variables to 'not used' (zero) (obsolete)\n"
 "unused2zero0  := { \"cmd\":\"unused2zero0\", <bxs>, <l>  }     Force don't care variables to 'not used' (zero) in slot 0, consider mask in <bxs> (obsolete)\n"

@@ -61,6 +61,9 @@
     complement
         { "cmd":"complement", "slot":<int> }
 
+    and	(can be used to get the unate state of variables)
+        { "cmd":"and", "slot":<int> }
+
     intersection0
       Calculate intersection and store the result in slot 0
       This operation will set the "empty" flag.
@@ -397,6 +400,11 @@ co bc_ExecuteVector(cco in)
       {
         assert(arg != NULL);
         bcp_ComplementBCL(p, arg);
+      }
+      else if ( p != NULL &&  strcmp(cmd, "and") == 0 )
+      {
+        assert(arg != NULL);
+        bcp_AndBCL(p, arg);
       }
       // "show"  "bcl" or "show" bcl from "slot"
       else if ( p != NULL &&  strcmp(cmd, "show") == 0 )

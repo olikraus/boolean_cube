@@ -34,6 +34,7 @@
   {
     "cmd":"group2zero0",
     "slot":7
+    "label0":"result after doing the group magic"
   },
   {
     "_comment0":"reference operand in slot 1",
