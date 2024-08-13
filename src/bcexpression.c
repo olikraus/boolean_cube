@@ -296,6 +296,7 @@ bcx bcp_ParseOR(bcp p, const char **s)
   add variable "s" to p->var_map and assign the position as value to the variable name
     key: variable name
     value: position number, starting with 0
+   return 0 in case of error
 */
 int bcp_AddVar(bcp p, const char *s)
 {
@@ -307,7 +308,9 @@ int bcp_AddVar(bcp p, const char *s)
   }  
   if ( coMapExists(p->var_map, s) )
     return 1;
-  return coMapAdd(p->var_map, s, coNewDbl(p->x_var_cnt++));
+  if ( coMapAdd(p->var_map, s, coNewDbl(p->x_var_cnt++)) == 0 )
+	  return 0;
+  return 1;
 }
 
 /*
