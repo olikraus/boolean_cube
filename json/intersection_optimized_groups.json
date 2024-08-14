@@ -51,6 +51,7 @@
   },
   {
     "cmd":"intersection0",
+	"debug":1,
     "slot":1,
     "label0": "intersection F1&IN and F1&M1&IN"
   },
@@ -62,6 +63,7 @@
   },
   {
     "cmd":"intersection0",
+	"debug":1,
     "slot":1,
     "label0": "intersection F1&IN and F1&M1&US"
   }

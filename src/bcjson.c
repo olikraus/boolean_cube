@@ -134,6 +134,7 @@ co bc_ExecuteVector(cco in)
   int is_0_superset = -1;
   int is_0_subset = -1;
   int is_out_arg = 0;
+  co debugMap = NULL;
   co output = coNewMap(CO_STRDUP|CO_STRFREE|CO_FREE_VALS);
   
   assert( output != NULL );
@@ -279,6 +280,12 @@ co bc_ExecuteVector(cco in)
       o = coMapGet(cmdmap, "label0");
       if (coIsStr(o))
         label0 = coStrGet(o);
+
+      o = coMapGet(cmdmap, "debug");
+      if ( o != NULL )
+		debugMap = coNewMap(CO_STRDUP|CO_STRFREE|CO_FREE_VALS);
+
+
 
       o = coMapGet(cmdmap, "slot");
       if (coIsDbl(o))
@@ -429,7 +436,16 @@ co bc_ExecuteVector(cco in)
         int intersection_result;
         assert(slot_list[0] != NULL);
         assert(arg != NULL);
+		if ( debugMap != NULL )
+		{
+            coMapAdd(debugMap, "in_slot0", coNewStr(CO_STRFREE, bcp_GetExpressionBCL(p, slot_list[0])));
+            coMapAdd(debugMap, "in_arg", coNewStr(CO_STRFREE, bcp_GetExpressionBCL(p, arg)));
+		}
         intersection_result = bcp_IntersectionBCL(p, slot_list[0], arg);   // a = a intersection with b 
+		if ( debugMap != NULL )
+		{
+            coMapAdd(debugMap, "out_result", coNewStr(CO_STRFREE, bcp_GetExpressionBCL(p, slot_list[0])));
+		}
         assert(intersection_result != 0);
         is_empty = 0;
         if ( slot_list[0]->cnt == 0 )
@@ -574,7 +590,19 @@ co bc_ExecuteVector(cco in)
               coMapAdd(e, "aexpr", coNewStr(CO_STRFREE, bcp_GetExpressionBCL(p, arg)));
             }
           }
+		  
+		  if ( debugMap != NULL  )
+		  {
+			  coMapAdd(e, "debug", debugMap);
+			  debugMap = NULL;
+		  }
         }
+		
+	    if ( debugMap != NULL  )  // if debugMap was not used (because label was not set), then remove it here
+	    {
+		  coDelete(debugMap);
+		  debugMap = NULL;
+	    }
         
         coMapAdd(output, label0 != NULL?label0:label, e);
       } // label
