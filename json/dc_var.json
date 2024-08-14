@@ -1,0 +1,13 @@
+[
+  {
+    "cmd":"bcl2slot",
+    "expr":"a&b&c&d | a&b&-c&d",
+    "slot":0,
+	"label0":"out1"
+  },
+  {
+	"cmd":"minimize",
+	"label0":"out2"
+  }
+]
+

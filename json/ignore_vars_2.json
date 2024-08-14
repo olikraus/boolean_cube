@@ -1,0 +1,16 @@
+[
+  {
+	"_comment":"this cmd defines the variables, which should be used",
+    "cmd":"bcl2slot",
+    "expr":"a&b&c",
+    "slot":0
+  },
+  {
+    "cmd":"bcl2slot",
+    "expr":"a&b&c&d | e&-d&-a&b",
+    "ignoreVars":1,
+    "slot":0,
+    "label0":"use only a, b and c"
+  }
+]
+
