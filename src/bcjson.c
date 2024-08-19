@@ -469,7 +469,7 @@ co bc_ExecuteVector(cco in)
         int subtract_result;
         assert(slot_list[0] != NULL);
         assert(arg != NULL);
-        bcp_SubtractBCL(p, slot_list[0], arg, 1);   // a = a minus b 
+        subtract_result = bcp_SubtractBCL(p, slot_list[0], arg, 1);   // a = a minus b 
         assert(subtract_result != 0);
         is_empty = 0;
         if ( slot_list[0]->cnt == 0 )
