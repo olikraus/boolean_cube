@@ -438,8 +438,25 @@ co bc_ExecuteVector(cco in)
         assert(arg != NULL);
 		if ( debugMap != NULL )
 		{
-            coMapAdd(debugMap, "in_slot0", coNewStr(CO_STRFREE, bcp_GetExpressionBCL(p, slot_list[0])));
-            coMapAdd(debugMap, "in_arg", coNewStr(CO_STRFREE, bcp_GetExpressionBCL(p, arg)));
+			  int j;
+			  co v = coNewVector(CO_FREE_VALS);
+			  for( j = 0; j <  slot_list[0]->cnt; j++ )
+			  {
+				coVectorAdd( v, coNewStr(CO_STRDUP, bcp_GetStringFromCube(p, bcp_GetBCLCube(p, slot_list[0], j))));
+			  }
+			coMapAdd(debugMap, "in_slot0_bcl", v);
+
+			  v = coNewVector(CO_FREE_VALS);
+			  for( j = 0; j < arg->cnt; j++ )
+			  {
+				coVectorAdd( v, coNewStr(CO_STRDUP, bcp_GetStringFromCube(p, bcp_GetBCLCube(p, arg, j))));
+			  }
+			coMapAdd(debugMap, "in_arg_bcl", v);
+
+            coMapAdd(debugMap, "in_slot0_expr", coNewStr(CO_STRFREE, bcp_GetExpressionBCL(p, slot_list[0])));
+            coMapAdd(debugMap, "in_arg_expr", coNewStr(CO_STRFREE, bcp_GetExpressionBCL(p, arg)));
+			
+			
 		}
         intersection_result = bcp_IntersectionBCL(p, slot_list[0], arg);   // a = a intersection with b 
 		if ( debugMap != NULL )

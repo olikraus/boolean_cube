@@ -831,6 +831,11 @@ char *bcp_GetExpressionBCL(bcp p, bcl l)
     If the input clause is "a1", then actually it means "a1" but not a2, a3 and a4, so the correct
     expression would be "a1 & !a2 & !a3 & !a4"
     The same is true for "a1&a3": In this case the actual meaning is "a1 & !a2 & a3 & !a4"
+	
+	The opposite should be also considered:
+	If the input is "!a1", then the others are probably wanted
+	
+	If will be difficult, if the user enters "!a1 & a2". Then the question is, what is the actual meaning? We can probably fallback to the first case.
 
     So the idea is: With all variables of a group of variables, where the variables are not used in the expression: Set those variables to "01" (zero)
     This requires a SOP representation in the BCL (which usually should be the case)
@@ -843,10 +848,16 @@ char *bcp_GetExpressionBCL(bcp p, bcl l)
     input: BCL, group of variables
 
     used var group = a list of all variables of group, which are used anywhere in the given BCL 
+	
     if this list is not empty:
-      for each cube in the given BCL
-        with all variables of the group, which are NOT part of used var group
-          set the varibale to 01 in the current cube
+	  if all vars in var group are negative then:
+        for each cube in the given BCL
+          with all variables of the group, which are NOT part of used var group
+            set the varibale to 10 in the current cube
+	  else
+        for each cube in the given BCL
+          with all variables of the group, which are NOT part of used var group
+            set the varibale to 01 in the current cube
         
 
 */
@@ -857,6 +868,8 @@ int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp)
   bc grp_var;
   bc c;
   int is_any_var_used;
+  int is_any_positive_var_used;
+  int is_any_negative_var_used;
   int i, j;
   int grp_var_cnt = 0;
   __m128i mask;
@@ -879,6 +892,8 @@ int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp)
   
   /* STEP 1: find out, whether any variables from grp_var are used in l_var */
   is_any_var_used = 0;
+  is_any_positive_var_used = 0;
+  is_any_negative_var_used = 0;
   for( i = 0; i < p->var_cnt; i++ )
   {
     if ( bcp_GetCubeVar(p, grp_var, i) != 3 )   // if the variable is in the group, then...
@@ -887,7 +902,10 @@ int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp)
       if ( bcp_GetCubeVar(p, l_var, i) != 3 ) // if the same variable is also used in the BCL
       {
         is_any_var_used = 1;
-        break;
+		if ( bcp_GetCubeVar(p, l_var, i) == 1 )
+			is_any_negative_var_used = 1;
+		if ( bcp_GetCubeVar(p, l_var, i) == 2 )
+			is_any_positive_var_used = 1;
       }
     }
   }
@@ -898,41 +916,81 @@ int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp)
 
     return bcp_EndCubeStackFrame(p), 1; // none of the variables of the group are used, so keep the BCL as it is
   }
-  logprint(2, "bcl_ExcludeBCLVars: Some group variables used (%d vars in the group)", grp_var_cnt);
+  logprint(2, "bcl_ExcludeBCLVars: Some group variables used (%d vars in the group), is_positive=%d, is_negative=%d", grp_var_cnt, is_any_positive_var_used, is_any_negative_var_used);
     
-  /* STEP 2: Calculate "and" mask */
-  /* it this point, some variables of the group are used */
-  /* goal is now to force variables in BCL to "01", which are previoulsy not used in the BCL ("11") */
-  /* for this goal, we will reuse grp_var as a mask for the BCL: */
-  /* group vars, which are used in the BCL, will become "11", leaving those variables untouched */
-  /* group vars, which are not used in the BCL, will become "01", forcing those vars to zero ("01") */
-  for( i = 0; i < p->var_cnt; i++ )
+	
+  if ( is_any_positive_var_used )
   {
-    if ( bcp_GetCubeVar(p, grp_var, i) != 3 )   // if the variable is in the group, then...
-    {
-      if ( bcp_GetCubeVar(p, l_var, i) != 3 ) // if the same variable is also used in the BCL
-      {
-        bcp_SetCubeVar(p, grp_var, i, 3);       // the group var is used in BCL, so revert this to DC
-      }
-      else
-      {
-        bcp_SetCubeVar(p, grp_var, i, 1);       // the group var is not used in BCL, so force the value to "01"
-      }
-    }
+		
+	  /* STEP 2: Calculate "and" mask */
+	  /* it this point, some variables of the group are used */
+	  /* goal is now to force variables in BCL to "01", which are previoulsy not used in the BCL ("11") */
+	  /* for this goal, we will reuse grp_var as a mask for the BCL: */
+	  /* group vars, which are used in the BCL, will become "11", leaving those variables untouched */
+	  /* group vars, which are not used in the BCL, will become "01", forcing those vars to zero ("01") */
+	  for( i = 0; i < p->var_cnt; i++ )
+	  {
+		if ( bcp_GetCubeVar(p, grp_var, i) != 3 )   // if the variable is in the group, then...
+		{
+		  if ( bcp_GetCubeVar(p, l_var, i) != 3 ) // if the same variable is also used in the BCL
+		  {
+			bcp_SetCubeVar(p, grp_var, i, 3);       // the group var is used in BCL, so revert this to DC
+		  }
+		  else
+		  {
+			bcp_SetCubeVar(p, grp_var, i, 1);       // the group var is not used in BCL, so force the value to "01"
+		  }
+		}
+	  }
+	  
+	  /* STEP 3: apply "and" mask */
+	  /* now the mask is inside grp_var and we can just "and" the mask with all cubes in BCL */
+	  for( j = 0; j < p->blk_cnt; j++ )
+	  {
+		mask = _mm_loadu_si128(grp_var+j);  // grp_var now contains the mask for the BCL cubes
+		for( i = 0; i < l->cnt; i++ )
+		{
+		  c = bcp_GetBCLCube(p,l,i);
+		  _mm_storeu_si128(c+j, _mm_and_si128(_mm_loadu_si128(c+j), mask)); // force the unused vars from the group to zero
+		}
+	  }
   }
-  
-  /* STEP 3: apply "and" mask */
-  /* now the mask is inside grp_var and we can just "and" the mask with all cubes in BCL */
-  for( j = 0; j < p->blk_cnt; j++ )
+  else if ( is_any_negative_var_used ) // && is_any_positive_var_used == 0 
   {
-    mask = _mm_loadu_si128(grp_var+j);  // grp_var now contains the mask for the BCL cubes
-    for( i = 0; i < l->cnt; i++ )
-    {
-      c = bcp_GetBCLCube(p,l,i);
-      _mm_storeu_si128(c+j, _mm_and_si128(_mm_loadu_si128(c+j), mask)); // force the unused vars from the group to zero
-    }
+	  /* STEP 2: Calculate "and" mask */
+	  /* it this point, some variables of the group are used BUT all of them are used negative */
+	  /* goal is now to force variables in BCL to "10" (positive), which are previoulsy not used in the BCL ("11") */
+	  /* for this goal, we will reuse grp_var as a mask for the BCL: */
+	  /* group vars, which are used in the BCL, will become "11", leaving those variables untouched */
+	  /* group vars, which are not used in the BCL, will become "10", forcing those vars to one ("10") */
+	  for( i = 0; i < p->var_cnt; i++ )
+	  {
+		if ( bcp_GetCubeVar(p, grp_var, i) != 3 )   // if the variable is in the group, then...
+		{
+		  if ( bcp_GetCubeVar(p, l_var, i) != 3 ) // if the same variable is also used in the BCL
+		  {
+			bcp_SetCubeVar(p, grp_var, i, 3);       // the group var is used in BCL, so revert this to DC
+		  }
+		  else
+		  {
+			bcp_SetCubeVar(p, grp_var, i, 2);       // the group var is not used in BCL, so force the value to "10"
+		  }
+		}
+	  }
+	  
+	  /* STEP 3: apply "and" mask */
+	  /* now the mask is inside grp_var and we can just "and" the mask with all cubes in BCL */
+	  for( j = 0; j < p->blk_cnt; j++ )
+	  {
+		mask = _mm_loadu_si128(grp_var+j);  // grp_var now contains the mask for the BCL cubes
+		for( i = 0; i < l->cnt; i++ )
+		{
+		  c = bcp_GetBCLCube(p,l,i);
+		  _mm_storeu_si128(c+j, _mm_and_si128(_mm_loadu_si128(c+j), mask)); // force the unused vars from the group to one
+		}
+	  }
+		
   }
-  
 
   bcp_EndCubeStackFrame(p);
   return 1;

@@ -3,7 +3,10 @@
 
 COPATH = ../../c-object/co
 
-CFLAGS = -g -pg -march=silvermont  -Wall  -I$(COPATH) -I.
+CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I.
+
+
+# CFLAGS += -pg -no-pie -fno-omit-frame-pointer -fno-inline-functions -fno-inline-functions-called-once -fno-optimize-sibling-calls
 
 # CFLAGS = -g -Wall -march=silvermont -fsanitize=address -I$(COPATH) -I.
 #CFLAGS = -g -Wall -march=silvermont -I$(COPATH) -I.
