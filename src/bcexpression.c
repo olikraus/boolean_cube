@@ -850,7 +850,7 @@ char *bcp_GetExpressionBCL(bcp p, bcl l)
     used var group = a list of all variables of group, which are used anywhere in the given BCL 
 	
     if this list is not empty:
-	  if all vars in var group are negative then:
+	  if all vars in var group are negative then: (note: in the code below the if/else blocks are swapped)
         for each cube in the given BCL
           with all variables of the group, which are NOT part of used var group
             set the varibale to 10 in the current cube
@@ -859,7 +859,11 @@ char *bcp_GetExpressionBCL(bcp p, bcl l)
           with all variables of the group, which are NOT part of used var group
             set the varibale to 01 in the current cube
         
-
+	Because the "one" assignment might also happen, the function name is misleading, because depending on the 
+	original bcl, the dc vars are excluded or included.
+	
+	This is executed by the "group2zero0" command, which is also misleading, because there might be also a one assignment.
+	
 */
 
 int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp)
