@@ -11,6 +11,20 @@
   License: CC BY-SA Attribution-ShareAlike 4.0 International
   https://creativecommons.org/licenses/by-sa/4.0/
 
+
+  __m128i _mm_srai_epi16 (__m128i a, int imm8)
+    Shift a to the right by imm8 bits. For bcc the size (epi16) doesn't matter.
+    
+  int _mm_movemask_epi8 (__m128i a)
+    Create mask from the most significant bit of each 8-bit element in a and return the result.
+    There are 16 bytes in _m128i, so the result will contain 16 bits (a value between 0x0000 and 0x0ffff)
+    This command only makes sense together with _mm_cmpeq
+    
+  __m128i _mm_cmpeq_epi16 (__m128i a, __m128i b)
+  __m128i _mm_cmpeq_epi8 (__m128i a, __m128i b)
+    In bcc we have only two bit elements, so again whether to use epi16 or epi8 doesn't matter
+    Compare packed 16/8-bit integers in a and b for equality, and return the result at the same position as 0x0ffff or 0x00000.
+    Pattern: _mm_movemask_epi8(_mm_cmpeq_epi8(a,b)) returns 0xffff if a and b are equal
 */
 
 #include "bc.h"
@@ -165,7 +179,7 @@ int bcp_IntersectionCube(bcp p, bc r, bc a, bc b)
 void bcp_GetVariableMask(bcp p, bc mask, bc c)
 {
   int i, cnt = p->blk_cnt;
-  __m128i z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));
+  __m128i z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));       // idx 0: all illegal (00), idx 1: all zero (01), idx 2: all one (10) and idx 3: all don't care (11)
   __m128i r;
   for( i = 0; i < cnt; i++ )
   {    
@@ -207,7 +221,7 @@ void bcp_InvertCube(bcp p, bc c)
 int bcp_IsAndZero(bcp p, bc a, bc b)
 {
   int i, cnt = p->blk_cnt;
-  __m128i zz = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 0));
+  __m128i zz = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 0));  // idx 0: all illegal (00), idx 1: all zero (01), idx 2: all one (10) and idx 3: all don't care (11)
   __m128i rr;
   
   for( i = 0; i < cnt; i++ )
@@ -241,7 +255,7 @@ unsigned bcp_OrBitCnt(bcp p, bc r, bc a, bc b)
 int bcp_IsIntersectionCube(bcp p, bc a, bc b)
 {
   int i, cnt = p->blk_cnt;
-  __m128i z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));
+  __m128i z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));  // idx 0: all illegal (00), idx 1: all zero (01), idx 2: all one (10) and idx 3: all don't care (11)
   __m128i rr;
   uint16_t f = 0x0ffff;
   for( i = 0; i < cnt; i++ )
@@ -284,6 +298,8 @@ int bcp_IsIllegal(bcp p, bc c)
 
 /*
   return the number of 01 or 10 values in a legal cube.
+
+  Jan 2025: Somehow the description above doesn't fit to the code: The code will count 11 twice I assume...
 
   called by bcp_GetBCLVarCntList()
 */

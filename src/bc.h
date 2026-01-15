@@ -68,7 +68,8 @@ struct bcp_struct
   bcl stack_cube_list;    // storage area for temp cubes
   int stack_frame_pos[BCP_MAX_STACK_FRAME_DEPTH];
   int stack_depth;
-  bcl global_cube_list;    // storage area for temp cubes
+  bcl global_cube_list;    // storage area for temp cubes, with the first four fixed cubes: idx 0: all illegal (00), idx 1: all zero (01), idx 2: all one (10) and idx 3: all don't care (11)
+
   
   int x_true;           // symbol for true --> '1'
   int x_false;           // symbol for false --> '0'

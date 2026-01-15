@@ -850,11 +850,11 @@ char *bcp_GetExpressionBCL(bcp p, bcl l)
     used var group = a list of all variables of group, which are used anywhere in the given BCL 
 	
     if this list is not empty:
-	  if all vars in var group are negative then: (note: in the code below the if/else blocks are swapped)
+      if all vars in var group are negative then: (note: in the code below the if/else blocks are swapped)
         for each cube in the given BCL
           with all variables of the group, which are NOT part of used var group
             set the varibale to 10 in the current cube
-	  else
+      else
         for each cube in the given BCL
           with all variables of the group, which are NOT part of used var group
             set the varibale to 01 in the current cube
@@ -863,7 +863,8 @@ char *bcp_GetExpressionBCL(bcp p, bcl l)
 	original bcl, the dc vars are excluded or included.
 	
 	This is executed by the "group2zero0" command, which is also misleading, because there might be also a one assignment.
-	
+  
+  
 */
 
 int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp)
@@ -889,7 +890,7 @@ int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp)
 
   /* get the unate/binate status of both lists */
   bcp_AndElementsBCL(p, l, l_var);
-  bcp_AndElementsBCL(p, grp, grp_var);
+  bcp_AndElementsBCL(p, grp, grp_var);  // argument group is only used here --> we could use a single cube instead here
 
   //bcp_ShowBCL(p, grp);
   //bcp_ShowBCL(p, l);
@@ -1000,3 +1001,60 @@ int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp)
   return 1;
 }
 
+
+/*
+  Update Jan 2025
+      
+    The case "a1&a3" should not exist. a1 and a2 exclude each other, so the cube is invalid and should be removed.
+    The user probably wanted to have a1|a3 which would then lead to two separate cubes.
+    If "a1&a3" has been created by an intersection calculation, then removing this cube is probably correct.
+    
+    The case "!a1 & a2" probably depends, whether the bcl is part of an on-set or an off-set.
+    On-Set: Exclude all dc variables
+    
+    The case "!a1" actually means "a2|a3|a4", which then has to be expanded to
+      !a1&a2&!a3&!a4
+      !a1&!a2&a3&!a4
+      !a1&!a2&!a3&a4
+    In general (for example for !a1&!a2) we could express this by a3 and a4
+      !a1&!a2&a3&!a4
+      !a1&!a2&!a3&a4
+  
+    Consider 0n-Set only
+      Case 0: All member of the group are dc --> DONE
+      Case 1: Two or more positive group members --> REMOVE the cube
+      Case 2: Exactly one positive group member (other group member can be DC or negative)-->  SET other group member to negative
+      Case 3: Only DC and negative group members: Probably similar to sharp operation:
+        For each DC group member, create a new cube, where this DC group member is positive and all others are negative (Case 2)
+        The remove the cube with the negative only group members.
+
+    Off-Set: ?
+      Maybe not required, the on set case seems to be symetric anyways
+    
+  Technical implementation
+      bcp_GetVariableMask(bcp p, bc mask, bc c)         create 00 (illegal) and 01 (zeros) for the variables
+        hmm probably we need 11 for member variables and 00 for all other
+        
+    Input: 
+      gmc group member cube: 10 for all member variables, 11 for anything else
+      c         any cube of a bcl
+      
+      mask = get mask from gmc
+      masked_c = c AND mask
+      one_cnt = get all ones from masked_c
+      zero_cnt = get all zeros from masked_c
+      
+      if ( one_cnt == 0 and zero_cnt == 0 )
+        return 1                // case 0, no todo
+      if ( one_cnt > 2 )
+        REMOVE c                // case 1
+      if ( one_cnt == 1 )
+        see code from prev function, // case 2
+      // case 3:
+        REPLACE c with member-cnt - zero_cnt new cubes
+        
+      
+    
+  
+      
+*/
