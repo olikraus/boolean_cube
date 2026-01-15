@@ -329,18 +329,24 @@ void help()
   puts("-speed                          Execute speed test procedure.");
   puts("-dimacscnf <dimacs cnf file>    SAT solver for the given DIMACS file.");
   puts("-parse <boolean expression>     Parse a given boolean expression.");
-  puts("-ojpp                           Pretty print JSON output for the next '-json' command.");
-  puts("-ojson <json file>              Provide filename for the JSON output of the next '-json' command.");
-  puts("-json <json file>               Parse and execute commands from JSON input file.");
+  puts("-ojpp                           Pretty print JSON output.");
+  puts("-ojson <json file>              Provide filename for the JSON output.");
+  puts("-json <json file>               Parse and execute commands from JSON input file (this option can be used multiple times).");
   printf("%s", json_input_spec);
   printf("%s", json_output_spec);
 }
 
 char *json_output_filename = NULL;
 int isCompactJSONOutput = 1;
+#define JSON_INPUT_FILE_MAX 64
+const char *json_input_filenames[JSON_INPUT_FILE_MAX];
+int json_input_file_cnt = 0;
 
 int main(int argc, char **argv)
 {
+  
+  
+  
   //struct tms start, end;
   if ( *argv == NULL )
       return 0;
@@ -399,7 +405,14 @@ int main(int argc, char **argv)
       argv++;
       if ( (*argv) == NULL )
         return puts("JSON filename missing"), 1;
-      bc_ExecuteJSONFile(*argv, json_output_filename, isCompactJSONOutput);
+
+      if ( json_input_file_cnt >= JSON_INPUT_FILE_MAX )
+        return puts("Too many JSON files"), 1;
+      json_input_filenames[json_input_file_cnt] = *argv;
+      json_input_file_cnt++;
+      
+      
+      //bc_ExecuteJSONFile(*argv, json_output_filename, isCompactJSONOutput);
       //times(&end);
       //printf("\nuser time: %lld\n", (long long int)(end.tms_utime-start.tms_utime));
       argv++;
@@ -429,6 +442,11 @@ int main(int argc, char **argv)
     }
       
   }
+  
+  if ( json_input_file_cnt > 0 )
+    if ( bc_ExecuteJSONFiles(json_input_filenames, json_input_file_cnt, json_output_filename, isCompactJSONOutput) == 0 )
+      return puts("JSON execution failed"), 1;
+  
   //times(&end);
   return 0;
 }

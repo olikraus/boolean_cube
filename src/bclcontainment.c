@@ -22,6 +22,21 @@
 /*============================================================*/
 /* simple single covered procedure */
 
+int bcp_IsBCLCubeSingleCovered(bcp p, bcl l, bc c)
+{
+  int i;
+  int cnt = l->cnt;
+  for( i = 0; i < cnt; i++ )
+  {
+    if ( l->flags[i] == 0 )
+    {
+      if ( bcp_IsSubsetCube(p, bcp_GetBCLCube(p, l, i), c) != 0 )       // bcube.c:bcp_IsSubsetCube
+        return 1;  // yes, c is a subset of bcp_GetBCLCube(p, l, i)
+    }
+  }
+  return 0;
+}
+
 /*
   In the given BCL, ensure, that no cube is part of any other cube
   This will call bcp_PurgeBCL()
@@ -64,7 +79,7 @@ void bcp_DoBCLSingleCubeContainment(bcp p, bcl l)
             */
             if ( vcl[j] >= vc )
             {
-              if ( bcp_IsSubsetCube(p, c, bcp_GetBCLCube(p, l, j)) != 0 )
+              if ( bcp_IsSubsetCube(p, c, bcp_GetBCLCube(p, l, j)) != 0 )       // bcube.c:bcp_IsSubsetCube
               {
                 l->flags[j] = 1;      // mark the j cube as deleted
 		reduceCnt++;

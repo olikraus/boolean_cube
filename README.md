@@ -66,6 +66,9 @@ The minimum required processor will be a "Pentium 4" (https://en.wikipedia.org/w
 To allow fast popcnt implementation use `-march=silvermont`.
 More details can be found here: https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html (bcc requires SSE2 and runs faster with POPCNT).
 
+On a linux pc, use `lscpu` to check for SSE2. The reference guide for SSE is available here: https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html
+
+
 This project requires the c-object library https://github.com/olikraus/c-object .
 Especially the two files "co.h" and "co.c" from https://github.com/olikraus/c-object/tree/main/co are required.
 
@@ -74,11 +77,12 @@ Especially the two files "co.h" and "co.c" from https://github.com/olikraus/c-ob
  - `-h` Show command line options
  - `-test` Execute internal test procedure. Requires debug version of this executable.
  - `-ojpp` Pretty print JSON output for the next '-json' command.
- - `-ojson <json file>` Provide filename for the JSON output of the next '-json' command.
- - `-json <json file>` Parse and execute commands from JSON input file.
+ - `-ojson <json file>` Provide filename for the JSON output. `stdout` will be used if the output file is not set.
+ - `-json <json file>` Parse and execute commands from JSON input file. Multiple `-json` commands are allowed.
 
-The `-json` command will read the json data from the provided argument. Results are written to the previously specified output file (`-ojson`),
-considering the pretty print option (`-ojpp`). As a consequence it is required to specifiy `-ojson` (and `-ojpp`) before the `-json` argument.
+The `-json` command will read the json data from the provided argument. Results are written to the specified output file (`-ojson`),
+considering the pretty print option (`-ojpp`). Multiple `-json` will be combined and executed as a single list.
+
 A call might look like this:
 ```
 ./bcc -ojpp -ojson output.json -json input.json
@@ -86,8 +90,14 @@ A call might look like this:
 
 Multiple input/output combinations can be executed:
 ```
-./bcc -ojson output1.json -json input1.json -ojson output2.json -json input2.json
+./bcc -json input1.json -json input2.json -ojson output.json
 ```
+
+Example:
+```
+./bcc -ojpp -json ../json/minimize.json  -json ../json/dc_var.json
+```
+
 
 ## JSON input file
 

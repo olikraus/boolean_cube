@@ -56,8 +56,9 @@ static int bcp_DoBCLSharpOperation(bcp p, bcl l, bc a, bc b)
       if ( new_aa != 0 )
       {
         bcp_SetCubeVar(p, a, i, new_aa);        // modify a 
-	//if ( bcp_IsBCLCubeCovered(p, l, a) == 0 )
-	  if ( bcp_AddBCLCubeByCube(p, l, a) < 0 ) // if a is not subcube of any existing cube, then add the modified a cube to the list
+	//if ( bcp_IsBCLCubeCovered(p, l, a) == 0 )  // if a is not subcube of any existing cube,
+        //if ( bcp_IsBCLCubeSingleCovered(p, l, a) == 0 )
+	  if ( bcp_AddBCLCubeByCube(p, l, a) < 0 ) //  add the modified a cube to the list
             return 0;  // memory error
         bcp_SetCubeVar(p, a, i, orig_aa);        // undo the modification
       }
@@ -72,14 +73,17 @@ static int bcp_DoBCLSharpOperation(bcp p, bcl l, bc a, bc b)
   if is_mcc is 0, then the substract operation will generate all prime cubes.
   if b is unate, then executing mcc slows down the substract, otherwise if b is binate, then using mcc increases performance
 */
+clock_t bcp_SubtractBCL_total = 0;
 int bcp_SubtractBCL(bcp p, bcl a, bcl b, int is_mcc)
 {
+  clock_t start = clock();
+  clock_t end;
   int i, j;
   bcl result = bcp_NewBCL(p);
   if ( result == NULL )
     return 0;
 
-  logprint(2, "bcp_SubtractBCL, bcl a size=%d, bcl a size=%d, is_mcc=%d", a->cnt, b->cnt, is_mcc );
+  logprint(2, "bcp_SubtractBCL start, var_cnt=%d, bcl a size=%d, bcl b size=%d, is_mcc=%d", p->var_cnt, a->cnt, b->cnt, is_mcc );
   
   for( i = 0; i < b->cnt; i++ )
   {
@@ -95,9 +99,12 @@ int bcp_SubtractBCL(bcp p, bcl a, bcl b, int is_mcc)
     if ( is_mcc )
       bcp_DoBCLMultiCubeContainment(p, a);
     //bcp_MinimizeBCLWithOnSet(p, a);
-    logprint(4, "bcp_SubtractBCL, step %d/%d, bcl a size=%d", i+1, b->cnt, a->cnt);
+    logprint(6, "bcp_SubtractBCL, step %d/%d, bcl result size=%d", i+1, b->cnt, a->cnt);
   }
   bcp_DeleteBCL(p, result);
+  end = clock();
+  bcp_SubtractBCL_total += end-start;
+  logprint(2, "bcp_SubtractBCL end, bcl a size=%d, clock=%ld total=%ld", a->cnt, end-start,  bcp_SubtractBCL_total);
   return 1; // success
 }
 

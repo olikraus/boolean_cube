@@ -129,7 +129,7 @@ bcp bcp_New(size_t var_cnt)
       p->x_and = '&';
       p->x_var_cnt = 0;
 	  
-      p->clock_do_bcl_multi_cube_containment = 10*CLOCKS_PER_SEC;
+      p->clock_do_bcl_multi_cube_containment = 1*CLOCKS_PER_SEC;
     
       if ( bcp_var_cnt_init(p, var_cnt) != 0 )
       {

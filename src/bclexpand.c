@@ -14,6 +14,7 @@
 */
 #include "bc.h"
 #include <assert.h>
+#include <time.h>
 
 /*
   try to expand cubes into another cube
@@ -21,11 +22,16 @@
 */
 void bcp_DoBCLSimpleExpand(bcp p, bcl l)
 {
+  clock_t start = clock();
+  clock_t end;
   int i, j, v;
   int k;
   int cnt = l->cnt;
   int delta;
   int cval, dval;
+  
+  int expand_cnt = 0;
+  int reduce_cnt = 0;
   bc c, d;
   for( i = 0; i < cnt; i++ )
   {
@@ -39,7 +45,7 @@ void bcp_DoBCLSimpleExpand(bcp p, bcl l)
           //if ( i != j )
           {
             d = bcp_GetBCLCube(p, l, j); 
-            delta = bcp_GetCubeDelta(p, c, d);
+            delta = bcp_GetCubeDelta(p, c, d);              // maybe we can have a new function which returns the variable if the delta is 1
             //printf("delta=%d\n", delta);
             
             if ( delta == 1 )
@@ -68,6 +74,7 @@ void bcp_DoBCLSimpleExpand(bcp p, bcl l)
                 {
                   // great, expand would be successful
                   bcp_SetCubeVar(p, c, v, 3);  // expand the cube, by adding don't care to that variable
+                  expand_cnt++;
                   //printf("v=%d success c\n", v);
 
                   /* check whether other cubes are covered by the new cube */
@@ -78,6 +85,7 @@ void bcp_DoBCLSimpleExpand(bcp p, bcl l)
                       if ( bcp_IsSubsetCube(p, c, bcp_GetBCLCube(p, l, k)) != 0 )
                       {
                         l->flags[k] = 1;      // mark the k cube as deleted
+                        reduce_cnt++;
                       }
                     }
                   } // for k
@@ -115,6 +123,8 @@ void bcp_DoBCLSimpleExpand(bcp p, bcl l)
     } // i cube not deleted
   } // i loop
   bcp_PurgeBCL(p, l);
+  end = clock();
+  logprint(2, "bcp_DoBCLSimpleExpand end, expand_cnt=%d, reduce_cnt=%d clock=%ld", expand_cnt, reduce_cnt,  end-start);
 }
 
 /* OBSOLETE */

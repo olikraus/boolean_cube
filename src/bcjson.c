@@ -655,6 +655,7 @@ co bc_ExecuteVector(cco in)
   return output;
 }
 
+
 int bc_ExecuteJSON(FILE *in_fp, FILE *out_fp, int isCompactJSONOutput)
 {
   co in = coReadJSONByFP(in_fp);
@@ -669,3 +670,54 @@ int bc_ExecuteJSON(FILE *in_fp, FILE *out_fp, int isCompactJSONOutput)
   return 1;
 }
 
+
+
+int bc_ExecuteJSONFiles(const char **json_input_filenames, int input_file_cnt, const char *json_output_filename, int isCompact)
+{
+  int i;
+  co in = coNewVector(CO_FREE_VALS);
+  co out;
+  FILE *out_fp = stdout;
+  
+  
+  for( i = 0; i < input_file_cnt; i++ ) {
+    co fin;
+    long fin_i, fin_cnt;
+    FILE *in_fp = fopen(json_input_filenames[i], "r");
+    if ( in_fp == NULL )
+      return perror(json_input_filenames[i]), coDelete(in), 0;
+    fin = coReadJSONByFP(in_fp);
+    fclose(in_fp);
+    if ( coIsVector(fin) == 0 ) {
+      return coDelete(in), coDelete(fin), 0;           // not a vector
+    }
+    /*
+      append elements from "fin" to "in".
+      elements will be moved without cloning them, this means, we have to remove the CO_FREE_VALS flag from fin
+    */
+    fin->flags = 0;
+    fin_cnt = coVectorSize(fin);
+    for( fin_i = 0; fin_i < fin_cnt; fin_i++ ) {
+      if ( coVectorAdd(in, coVectorGet(fin, fin_i)) < 0 )
+        return coDelete(in), coDelete(fin), 0;           // memory error, Note: There is a memory leak with "fin", because elements between fin_i+1 and fin_cnt-1 are not deleted
+    }
+    coDelete(fin);        // delete the array but not the elements (because we have removed the CO_FREE_VALS above)
+  }
+  
+  
+  if ( json_output_filename != NULL )
+  {
+    out_fp = fopen(json_output_filename, "w");
+    if ( out_fp == NULL )
+      return coDelete(in), perror(json_output_filename), 0;
+  }
+
+  out = bc_ExecuteVector(in);
+  // coWriteJSON(cco o, int isCompact, int isUTF8, FILE *fp); // isUTF8 is 0, then output char codes >=128 via \u 
+  coWriteJSON(out, isCompact, 1, out_fp); // isUTF8 is 0, then output char codes >=128 via \u 
+  if ( out_fp != stdout )
+    fclose(out_fp);
+  coDelete(out);
+  coDelete(in);
+  return 1;
+}
