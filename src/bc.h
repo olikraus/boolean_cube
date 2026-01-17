@@ -302,7 +302,10 @@ bcl bcp_NewBCLByBCX(bcp p, bcx x);
 
 char *bcp_GetExpressionBCL(bcp p, bcl l);       // convert "l" to a human readable expression, return value must be free'd if not NULL
 
-int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp);
+/* bcexclude.c */
+
+int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp);                  // obsolete, replaced by bcp_DoBCLExcludeGroup()
+int bcp_DoBCLExcludeGroup(bcp p, bcl l, bc grp);                // 
 
 
 /* bcjson.c */

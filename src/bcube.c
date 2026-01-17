@@ -12,9 +12,15 @@
   https://creativecommons.org/licenses/by-sa/4.0/
 
 
+  https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#ssetechs=SSE,SSE2&ig_expand=80
+
+
   __m128i _mm_srai_epi16 (__m128i a, int imm8)
     Shift a to the right by imm8 bits. For bcc the size (epi16) doesn't matter.
-    
+
+  __m128i _mm_slli_epi16 (__m128i a, int imm8)
+    Shift a to the left by imm8 bits. For bcc the size (epi16) doesn't matter.
+
   int _mm_movemask_epi8 (__m128i a)
     Create mask from the most significant bit of each 8-bit element in a and return the result.
     There are 16 bytes in _m128i, so the result will contain 16 bits (a value between 0x0000 and 0x0ffff)
@@ -299,8 +305,6 @@ int bcp_IsIllegal(bcp p, bc c)
 /*
   return the number of 01 or 10 values in a legal cube.
 
-  Jan 2025: Somehow the description above doesn't fit to the code: The code will count 11 twice I assume...
-
   called by bcp_GetBCLVarCntList()
 */
 int bcp_GetCubeVariableCount(bcp p, bc cube)
@@ -313,6 +317,7 @@ int bcp_GetCubeVariableCount(bcp p, bc cube)
     c = _mm_loadu_si128(cube+i);      // load one block from cube
     
     /* use gcc builtin command, also use -march=silvermont with gcc to generate the popcount assembler command */
+    /* note: we count the zeros here! */
     delta += __builtin_popcountll(~_mm_cvtsi128_si64(_mm_unpackhi_epi64(c, c)));
     delta += __builtin_popcountll(~_mm_cvtsi128_si64(c));
   }  
