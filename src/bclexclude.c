@@ -267,7 +267,9 @@ int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
   unsigned j;
   unsigned zero_cnt;
   unsigned one_cnt;
-  unsigned one_pos;          // position of the first 10 variable in the cube
+  int one_pos = -1;          // position of the first 10 variable in the cube
+
+  printf("bcp_DoBCLCubeExcludeGroup: cube=%s\n", bcp_GetStringFromCube(p, cube));
   
   zero_cnt = 0;
   one_cnt = 0;
@@ -277,7 +279,7 @@ int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
       task: count 01 (zeros) and 10 (once).
       idea: instead of counting the 1 we do count the 0, this means we have to force all none-group variables to dc, this is done in the next step:
     */
-    r = _mm_or_si128( __mm_xor_si128(_mm_loadu_si128(grp_dc_mask+j), _mm_set1_epi32(-1)), _mm_loadu_si128(cube+j) );    // get the blk from memory and force all none-group var's to dc
+    r = _mm_or_si128( _mm_xor_si128(_mm_loadu_si128(grp_dc_mask+j), _mm_set1_epi32(-1)), _mm_loadu_si128(cube+j) );    // get the blk from memory and force all none-group var's to dc
     z = _mm_or_si128( r, zero_mask );           // or with the zero mask   10 (one) | 01 --> 11 (dc)   01 (zero) | 01 --> 01 (zero)
     o = _mm_or_si128( r, one_mask );           // or with the zero mask   10 (one) | 10 --> 10 (one)   01 (zero) | 10 --> 11 (dc)
 
@@ -287,17 +289,19 @@ int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
     
     /* count 0 to get the number of 10 variables */
     one_cnt += __builtin_popcountll(~_mm_cvtsi128_si64(_mm_unpackhi_epi64(o, o)));
-    if ( one_cnt == 1 )
+    if ( one_cnt > 0 && one_pos < 0 )
     {
         // calculate the position of the one for the upper half part of the __m128i, only required for case 2
         one_pos = __builtin_ctzll(~_mm_cvtsi128_si64(_mm_unpackhi_epi64(z, z))) / 2  + p->vars_per_blk_cnt/2 + j*p->vars_per_blk_cnt; 
     }
     one_cnt += __builtin_popcountll(~_mm_cvtsi128_si64(o));
-    if ( one_cnt == 1 )
+    if ( one_cnt > 0 && one_pos < 0 )
     {
         one_pos = __builtin_ctzll(~_mm_cvtsi128_si64(o)) / 2 + j*p->vars_per_blk_cnt;
     }
   }
+
+  printf("bcp_DoBCLCubeExcludeGroup: zero_cnt=%d one_cnt=%d one_pos=%d\n", zero_cnt, one_cnt, one_pos);
   
   if ( one_cnt == 0 && zero_cnt == 0 )
   {
@@ -319,14 +323,12 @@ int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
     bcp_SetCubeVar(p, grp_dc_mask, one_pos, 0);                 // remove the one from the member list by unmarking it
     for( j = 0; j < p->blk_cnt; j++ )
     {
-      r = __mm_xor_si128(_mm_loadu_si128(grp_dc_mask+j), _mm_set1_epi32(-1));           // get the inverted dc mask
+      r = _mm_xor_si128(_mm_loadu_si128(grp_dc_mask+j), _mm_set1_epi32(-1));           // get the inverted dc mask
       r = _mm_or_si128( r, zero_mask );         // now we have 11 for all none group vars (and the single one) and 01 for all other member variables
       r = _mm_and_si128( r, _mm_loadu_si128(cube+j)  );         // force all other member variables to 01, actually this is only required for 11 variables, but check for this is too expensive
-      
-      
-      r = _mm_and_si128( __mm_and_si128(_mm_loadu_si128(grp_dc_mask+j), zero_mask), _mm_loadu_si128(cube+j) );    // get the blk from memory and force all none-group var's to dc
     _mm_storeu_si128(cube+j, r);          // store the result in the destination cube    
     bcp_SetCubeVar(p, grp_dc_mask, one_pos, 3);                 // undo the modification from above
+    }
   }
   else  // one_cnt==0 && zero_cnt > 0
   {
@@ -337,14 +339,14 @@ int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
     */
     for( j = 0; j < p->var_cnt; j++ )
     {
-      if ( bcp_GetCubeVar(p, grp_dc_mask, one_pos) == 3 ) // is this a group member var?
+      if ( bcp_GetCubeVar(p, grp_dc_mask, j) == 3 ) // is this a group member var?
       {
-        if ( bcp_GetCubeVar(p, cube, one_pos) == 3 ) // is this dc in the cube?
+        if ( bcp_GetCubeVar(p, cube, j) == 3 ) // is this dc in the cube?
         {
           int new_cube_pos =  bcp_AddBCLCubeByCube(p, l, cube);
           if ( new_cube_pos < 0 )
             return 0;           // memory error
-          bcp_GetCubeVar(p, bcp_GetBCLCube(p,l,new_cube_pos), 2); // replace the dc with a one
+          bcp_SetCubeVar(p, bcp_GetBCLCube(p,l,new_cube_pos), j, 2); // replace the dc with a one
         }
       }
     }
@@ -365,24 +367,33 @@ int bcp_DoBCLExcludeGroup(bcp p, bcl l, bc grp)
   __m128i r;
   
   bcp_StartCubeStackFrame(p);
-  grp_dc_mask = bcp_GetTempCube(p);
+  grp_dc_mask = bcp_GetTempCube(p);  // goal is to create a new cube with 00 for not member and 11 for member variables
   for( j = 0; j < p->blk_cnt; j++ )
   {
     r = _mm_loadu_si128(grp+j); // only contains 11 and 10
-    r = __mm_xor_si128(r, _mm_set1_epi32(-1));  // bit invert, so we have 00 and 01
-    r = _mm_or_si128( r,   __m128i _mm_slli_epi16 (r, 1); // create 00 and 11 
+    r = _mm_xor_si128(r, _mm_set1_epi32(-1));  // bit invert, so we have 00 and 01
+    r = _mm_or_si128( r,   _mm_slli_epi16 (r, 1)); // create 00 and 11 
     _mm_storeu_si128(grp_dc_mask+j, r);          // store the result in the mask cube    
   }
 
+  coPrint(p->var_map); puts("");
+  bcp_ShowBCL(p, l);
+  printf("bcp_DoBCLExcludeGroup: grp_dc_mask=%s\n", bcp_GetStringFromCube(p, grp_dc_mask));
+  
+  
   for( j = 0; j < l->cnt; j++ )
   {
-    if ( bcp_DoBCLCubeExcludeGroup(p, l, j, grp_dc_mask) == 0 )
+    if ( l->flags[j] == 0 )
     {
-      bcp_EndCubeStackFrame(p);
-      return 0;         // memory error
+      if ( bcp_DoBCLCubeExcludeGroup(p, l, j, grp_dc_mask) == 0 )  // this may modify l->cnt
+      {
+        bcp_EndCubeStackFrame(p);
+        return 0;         // memory error
+      }
     }
   }
   
+  bcp_PurgeBCL(p, l);  // physically remove cubes, which are marked as deleted
   
   bcp_EndCubeStackFrame(p);
   return  1;

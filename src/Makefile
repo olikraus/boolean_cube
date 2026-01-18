@@ -15,7 +15,7 @@ SRC = bcutil.c bcp.c bcube.c bclcore.c bcselftest.c bccofactor.c
 SRC += bclcontainment.c bcltautology.c bclsubtract.c 
 SRC += bclcomplement.c bclsubset.c bclintersection.c
 SRC += bclexpand.c bclminimize.c
-SRC += bcexpression.c bcldimacscnf.c
+SRC += bcexpression.c bclexclude.c bcldimacscnf.c
 SRC += $(COPATH)/co.c 
 SRC += bcjson.c main.c
 

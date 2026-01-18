@@ -420,10 +420,10 @@ static void expression_test_sub(const char *cubes, const char *expression, int i
   char *expr2;
 
   printf("Parse test '%s'\n", expression);
-  p = bcp_New(0);
-  x = bcp_Parse(p, expression, is_not_propagation, 1);
+  p = bcp_New(0);                                                               // create a new (incomplete) problem structure
+  x = bcp_Parse(p, expression, is_not_propagation, 1);          // parse a string expression, this will also update p>x_var_cnt
   assert(x != NULL);
-  bcp_UpdateFromBCX(p);
+  bcp_UpdateFromBCX(p);                                                      // takeover the variables from the expression into the problem structure
   
   assert( bcp_GetVarCntFromString(cubes) == p->var_cnt );  // cube size must be equal to the number of variables in the expression
 
@@ -458,7 +458,7 @@ static void expression_test_sub(const char *cubes, const char *expression, int i
   bcp_Delete(p);
 }
 
-void expressionTest(void)
+void expressionTest(void)   // called from main.c if command line option -test is provided
 {
   expression_test_sub("1", "a", 1);
   expression_test_sub("11", "a&b", 1);
@@ -470,3 +470,62 @@ void expressionTest(void)
   expression_test_sub("--11\n1--1\n-1-1\n", "-(-a&-b&-c)&d", 1);
   expression_test_sub("--11\n1--1\n-1-1\n", "-(-a&-b&-c)&d", 0);
 }
+
+
+void exclude_test_sub(const char *expression, const char *group, const char *expected_result)
+{
+  bcp p;
+  bcx x;
+  bcl lexpr, lgrp, lexpected;
+  int equal;
+  char *expr2;
+
+  printf("Exclude test expr='%s' grp='%s'\n", expression, group);
+  p = bcp_New(0);                                                               // create a new (incomplete) problem structure
+  x = bcp_Parse(p, expression, 1, 1);          // parse a string expression, this will also update p>x_var_cnt
+  assert(x != NULL);
+  bcp_UpdateFromBCX(p);                                                      // takeover the variables from the expression into the problem structure
+  lexpr = bcp_NewBCLByBCX(p, x);   
+  assert( lexpr != NULL );
+  bcp_DeleteBCX(p, x);          // abstract syntax tree is not required any more
+
+  x = bcp_Parse(p, group, 0, 0);
+  lgrp = bcp_NewBCLByBCX(p, x);   
+  assert( lgrp != NULL );
+  assert( lgrp->cnt == 1 );
+  bcp_DeleteBCX(p, x); 
+
+  x = bcp_Parse(p, expected_result, 0, 0);
+  lexpected = bcp_NewBCLByBCX(p, x);   
+  assert( lexpected != NULL );
+  bcp_DeleteBCX(p, x); 
+  
+  if ( bcp_DoBCLExcludeGroup(p, lexpr, bcp_GetBCLCube(p, lgrp, 0)) == 0 )
+  {
+    printf("Exclude test memory error\n");
+    return;
+  }
+  
+  expr2 = bcp_GetExpressionBCL(p, lexpr);       // convert "l" to a human readable expression, return value must be free'd if not NULL
+  assert( expr2 != NULL );
+  
+  printf("Exclude exclude result='%s'\n", expr2);
+  
+  
+  equal = bcp_IsBCLEqual(p, lexpr, lexpected);                // checks whether the two lists are equal
+  assert( equal != 0 );
+
+  bcp_DeleteBCL(p, lexpected);
+  bcp_DeleteBCL(p, lgrp);
+  bcp_DeleteBCL(p, lexpr);
+  bcp_Delete(p);  
+}
+
+
+void excludeTest()
+{
+  /* void exclude_test_sub(const char *expression, const char *group, const char *expected_result) */
+  exclude_test_sub("a", "a", "a");
+  exclude_test_sub("a&b|c", "a&b", "c");        // expectation is, that a&b is removed
+}
+

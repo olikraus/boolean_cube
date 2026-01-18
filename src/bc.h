@@ -83,13 +83,13 @@ struct bcp_struct
   clock_t clock_do_bcl_multi_cube_containment;		// max time limit given for multi cube containment operation, must be seconds*CLOCKS_PER_SEC
 	
   co var_map;           // map with all variables, key=name, value=position (double), p->x_var_cnt contains the number of variables in var_map
-  co var_list;                  // vector with all variables, derived from var_map
+  co var_list;                  // vector with all variables, derived from var_map, use coPrint(p->var_list); puts(""); to print the variables
 };
 
 /* a list of boolean cubes */
 struct bcl_struct
 {
-  int cnt;
+  volatile int cnt;       // there are algoritms which may modify the cnt, so tell the compiler to always get this data from the structure
   int max;
   int last_deleted;
   __m128i *list;        // max * var_cnt / 64 entries
@@ -150,7 +150,7 @@ void bcp_SetCubeVar(bcp p, bc c, unsigned var_pos, unsigned value);
 #define bcp_GetCubeVar(p, c, var_pos) \
   ((((uint16_t *)(c))[(var_pos)/8] >> (((var_pos)&7)*2)) & 3)
 
-const char *bcp_GetStringFromCube(bcp p, bc c);
+const char *bcp_GetStringFromCube(bcp p, bc c);         // returns a pointer to an internal memory area, which must not be free'd. The returned address will be overwritten with a next call to this fn
 void bcp_SetCubeByStringPointer(bcp p, bc c,  const char **s);
 void bcp_SetCubeByString(bcp p, bc c, const char *s);
 
@@ -185,7 +185,7 @@ int bcp_ExtendBCL(bcp p, bcl l);
 void bcp_ShowBCL(bcp p, bcl l);
 void bcp_Show2BCL(bcp p, bcl l1, bcl l2);
 int bcp_IsPurgeUsefull(bcp p, bcl l);
-void bcp_PurgeBCL(bcp p, bcl l);               /* purge deleted cubes */
+void bcp_PurgeBCL(bcp p, bcl l);               /* purge deleted cubes, deleted cubes are marked in the flags with a 1 */
 int bcp_AddBCLCube(bcp p, bcl l); // add empty cube to list l, returns the position of the new cube or -1 in case of error
 int bcp_AddBCLCubeByCube(bcp p, bcl l, bc c); // append cube c to list l, returns the position of the new cube or -1 in case of error
 int bcp_AddBCLCubesByBCL(bcp p, bcl a, bcl b); // append cubes from b to a, does not do any simplification, returns 0 on error
@@ -278,6 +278,22 @@ void bcp_MinimizeBCLWithOnSet(bcp p, bcl l);
 
 /* bcexpression.c */
 
+/*
+  bcp p;
+  bcx x;
+  bcl l;
+  p = bcp_New(0);                                                               // create a new (incomplete) problem structure
+  x = bcp_Parse(p, expression, is_not_propagation, 1);          // parse a string expression, this will also update p>x_var_cnt, can be called multiple times before calling bcp_UpdateFromBCX()
+  bcp_UpdateFromBCX(p);                                                      // takeover the variables from the expression into the problem structure
+  l = bcp_NewBCLByBCX(p, x);                                            // get the bcl from x
+  bcp_DeleteBCX(p, x);                                                          // remove the expression
+
+  if p is already filled with all the variables, then use 
+    bcx x = bcp_Parse(p, expr_str, 1, 0);              // assumption: p already contains all variables of expr_str, variables not in p are ignored
+    bcl l = bcp_NewBCLByBCX(p, x);          // create a bcl from the expression tree 
+    bcp_DeleteBCX(p, x);                      // free the expression tree
+
+*/
 
 void bcp_skip_space(bcp p, const char **s);
 const char *bcp_get_identifier(bcp p, const char **s);
@@ -291,7 +307,7 @@ int bcp_AddVar(bcp p, const char *s);   // used in bcexpression.c but also in bc
 //int bcp_AddVarsFromBCX(bcp p, bcx x);
 //int bcp_BuildVarList(bcp p);
 
-bcx bcp_Parse(bcp p, const char *s, int is_not_propagation, int is_register_variables);
+bcx bcp_Parse(bcp p, const char *s, int is_not_propagation, int is_register_variables); // is_not_propagation: Remove any not within the tree
 
 void bcp_ShowBCX(bcp p, bcx x);
 void bcp_PrintBCX(bcp p, bcx x);
@@ -328,6 +344,7 @@ void internalTest(int var_cnt);
 void speedTest(int var_cnt);
 void minimizeTest(int cnt);
 void expressionTest(void);
+void excludeTest(void);
 
 
 

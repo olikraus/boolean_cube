@@ -344,9 +344,6 @@ int json_input_file_cnt = 0;
 
 int main(int argc, char **argv)
 {
-  
-  
-  
   //struct tms start, end;
   if ( *argv == NULL )
       return 0;
@@ -372,6 +369,7 @@ int main(int argc, char **argv)
     {
       internalTest(7);
       expressionTest();
+      excludeTest();
       argv++;
     }
     else if ( strcmp(*argv, "-speed") == 0 )

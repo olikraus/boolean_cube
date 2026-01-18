@@ -442,6 +442,16 @@ static void bcp_PropagateNotBCX(bcp p, bcx x)
     0: do not apply de morgan rules to the expression try
     1: apply de morgan rules to the expression tree and move all not to the leafs of the tree (strongly recommended!!!)
 
+  Code pattern:
+    bcp p;
+    bcx x;
+    bcl l;
+    p = bcp_New(0);                                                               // create a new (incomplete) problem structure
+    x = bcp_Parse(p, expression, is_not_propagation, 1);          // parse a string expression, this will also update p>x_var_cnt, can be called multiple times before calling bcp_UpdateFromBCX()
+    bcp_UpdateFromBCX(p);                                                      // takeover the variables from the expression into the problem structure
+    l = bcp_NewBCLByBCX(p, x);                                            // get the bcl from x
+    bcp_DeleteBCX(p, x);                                                          // remove the expression
+
 */
 bcx bcp_Parse(bcp p, const char *s, int is_not_propagation, int is_register_variables)
 {
