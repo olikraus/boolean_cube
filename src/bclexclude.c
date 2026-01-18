@@ -292,7 +292,9 @@ int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
     if ( one_cnt > 0 && one_pos < 0 )
     {
         // calculate the position of the one for the upper half part of the __m128i, only required for case 2
-        one_pos = __builtin_ctzll(~_mm_cvtsi128_si64(_mm_unpackhi_epi64(z, z))) / 2  + p->vars_per_blk_cnt/2 + j*p->vars_per_blk_cnt; 
+        one_pos = __builtin_ctzll(~_mm_cvtsi128_si64(_mm_unpackhi_epi64(o, o))) / 2;
+        printf("bcp_DoBCLCubeExcludeGroup: Upper 64 bit one_pos = %d\n", one_pos);
+        one_pos += p->vars_per_blk_cnt/2 + j*p->vars_per_blk_cnt; 
     }
     one_cnt += __builtin_popcountll(~_mm_cvtsi128_si64(o));
     if ( one_cnt > 0 && one_pos < 0 )
@@ -349,8 +351,10 @@ int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
           bcp_SetCubeVar(p, bcp_GetBCLCube(p,l,new_cube_pos), j, 2); // replace the dc with a one
         }
       }
-    }
-  }
+    } // for
+    l->flags[idx] = 1;      // mark the original cube as deleted
+
+  } // else
   return 1;
 }
 
@@ -376,7 +380,9 @@ int bcp_DoBCLExcludeGroup(bcp p, bcl l, bc grp)
     _mm_storeu_si128(grp_dc_mask+j, r);          // store the result in the mask cube    
   }
 
-  coPrint(p->var_map); puts("");
+  //coPrint(p->var_map); puts("");
+  
+  puts("bcl:");
   bcp_ShowBCL(p, l);
   printf("bcp_DoBCLExcludeGroup: grp_dc_mask=%s\n", bcp_GetStringFromCube(p, grp_dc_mask));
   

@@ -3,8 +3,12 @@
 
 COPATH = ../../c-object/co
 
-CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I.
+# CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I.
 
+CFLAGS = -fprofile-arcs -ftest-coverage -g -march=silvermont  -Wall  -I$(COPATH) -I.            
+# gcov -b 
+# lcov --capture --directory . --output-file coverage.info
+# genhtml coverage.info --output-directory out
 
 # CFLAGS += -pg -no-pie -fno-omit-frame-pointer -fno-inline-functions -fno-inline-functions-called-once -fno-optimize-sibling-calls
 

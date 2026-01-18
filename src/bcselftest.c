@@ -472,16 +472,26 @@ void expressionTest(void)   // called from main.c if command line option -test i
 }
 
 
-void exclude_test_sub(const char *expression, const char *group, const char *expected_result)
+void exclude_test_sub(const char *expression, const char *group, const char *expected_result, int use_vars_from_group)
 {
   bcp p;
   bcx x;
+  bcx g;
   bcl lexpr, lgrp, lexpected;
   int equal;
   char *expr2;
 
   printf("Exclude test expr='%s' grp='%s'\n", expression, group);
   p = bcp_New(0);                                                               // create a new (incomplete) problem structure
+  
+  if ( use_vars_from_group )
+  {
+    g = bcp_Parse(p, group, 0, 1);          // parse a string expression, this will also update p>x_var_cnt
+    assert(g != NULL);
+    bcp_DeleteBCX(p, g);
+  }
+  
+  
   x = bcp_Parse(p, expression, 1, 1);          // parse a string expression, this will also update p>x_var_cnt
   assert(x != NULL);
   bcp_UpdateFromBCX(p);                                                      // takeover the variables from the expression into the problem structure
@@ -500,6 +510,11 @@ void exclude_test_sub(const char *expression, const char *group, const char *exp
   assert( lexpected != NULL );
   bcp_DeleteBCX(p, x); 
   
+  coPrint(p->var_map); puts("");
+  puts("grp:");
+  bcp_ShowBCL(p, lgrp);
+
+  
   if ( bcp_DoBCLExcludeGroup(p, lexpr, bcp_GetBCLCube(p, lgrp, 0)) == 0 )
   {
     printf("Exclude test memory error\n");
@@ -509,7 +524,8 @@ void exclude_test_sub(const char *expression, const char *group, const char *exp
   expr2 = bcp_GetExpressionBCL(p, lexpr);       // convert "l" to a human readable expression, return value must be free'd if not NULL
   assert( expr2 != NULL );
   
-  printf("Exclude exclude result='%s'\n", expr2);
+  printf("Exclude test result='%s'\n", expr2);
+  printf("Exclude test expected='%s'\n", bcp_GetExpressionBCL(p, lexpected));
   
   
   equal = bcp_IsBCLEqual(p, lexpr, lexpected);                // checks whether the two lists are equal
@@ -525,7 +541,16 @@ void exclude_test_sub(const char *expression, const char *group, const char *exp
 void excludeTest()
 {
   /* void exclude_test_sub(const char *expression, const char *group, const char *expected_result) */
-  exclude_test_sub("a", "a", "a");
-  exclude_test_sub("a&b|c", "a&b", "c");        // expectation is, that a&b is removed
-}
+  exclude_test_sub("a", "a", "a", 0);
+  exclude_test_sub("a&b|c", "a&b", "c", 0);        // expectation is, that a&b is removed
+  exclude_test_sub("a|b", "a&b", "(a&-b)|(-a&b)", 0);         // the original term needs to be updated with the negated other members
+  exclude_test_sub("(a&c)|(-b&d)", "a&b", "(a&-b&c)|(a&-b&d)", 0);         // the -b term will be extended with the a term
+  
+  exclude_test_sub("a", "a&b&c", "a&-b&-c", 1);         // the original term needs to be updated with the negated other members
+  exclude_test_sub("a", "a&b&c", "a&-b&-c", 0);         // the original term needs to be updated with the negated other members
+  exclude_test_sub("a", "a&b&c", "a", 0);         // the original term needs to be updated with the negated other members
+  
+  exclude_test_sub("-b", "a&b&c", "a&-b&-c|-a&-b&c", 1);         // the original term needs to be updated with the negated other members
 
+  exclude_test_sub("x", "a0&a1&a2&a3&a4&a5&a6&a7&a8&a9&b0&b1&b2&b3&b4&b5&b6&b7&b8&b9&c0&c1&c2&c3&c4&c5&c6&c7&c8&c9&d0&d1&d2&d3&d4&d5&d6&d7&d8&d9  &x", "-a0&-a1&-a2&-a3&-a4&-a5&-a6&-a7&-a8&-a9&-b0&-b1&-b2&-b3&-b4&-b5&-b6&-b7&-b8&-b9&-c0&-c1&-c2&-c3&-c4&-c5&-c6&-c7&-c8&-c9&-d0&-d1&-d2&-d3&-d4&-d5&-d6&-d7&-d8&-d9&x", 1);         // the original term needs to be updated with the negated other 
+}
