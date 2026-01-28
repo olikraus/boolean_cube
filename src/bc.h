@@ -70,6 +70,7 @@ struct bcp_struct
   int stack_depth;
   bcl global_cube_list;    // storage area for temp cubes, with the first four fixed cubes: idx 0: all illegal (00), idx 1: all zero (01), idx 2: all one (10) and idx 3: all don't care (11)
 
+  bcl exclude_group_list;       // list of exclusive variable lists, see bcp_DoBCLCubeExcludeGroup(), idea is to auto apply bcp_DoBCLCubeExcludeGroup() for all members of this list
   
   int x_true;           // symbol for true --> '1'
   int x_false;           // symbol for false --> '0'
@@ -322,6 +323,7 @@ char *bcp_GetExpressionBCL(bcp p, bcl l);       // convert "l" to a human readab
 
 int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp);                  // obsolete, replaced by bcp_DoBCLExcludeGroup()
 int bcp_DoBCLExcludeGroup(bcp p, bcl l, bc grp);                // 
+int bcp_DoBCLExcludeGroupList(bcp p, bcl l, bcl grp_list);
 
 
 /* bcjson.c */

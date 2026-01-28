@@ -42,6 +42,8 @@ static void bcp_var_cnt_clear(bcp p)
   p->global_cube_list = NULL;
   bcp_DeleteBCL(p, p->stack_cube_list);
   p->stack_cube_list = NULL;
+  bcp_DeleteBCL(p, p->exclude_group_list);
+  p->exclude_group_list = NULL;
   free(p->cube_to_str);
   p->cube_to_str = NULL;
 }
@@ -67,45 +69,50 @@ static int bcp_var_cnt_init(bcp p, size_t var_cnt)
   p->cube_to_str = (char *)malloc(p->var_cnt+1); 
   if ( p->cube_to_str != NULL )
   {
-    p->stack_cube_list = bcp_NewBCL(p);
-    if ( p->stack_cube_list != NULL )
+    p->exclude_group_list = bcp_NewBCL(p);
+    if ( p->exclude_group_list != NULL )
     {
-      p->global_cube_list = bcp_NewBCL(p);
-      if ( p->global_cube_list != NULL )
+      p->stack_cube_list = bcp_NewBCL(p);
+      if ( p->stack_cube_list != NULL )
       {
-        int i;
-                    /*
-                            0..3:	constant cubes for all illegal, all zero, all one and all don't care
-                            4..7:	uint8_t counters for zeros in a list
-                            8..11:	uint8_t counters for ones in a list
-                            4..11: uint16_t counters
-                            12..19: uint16_t counters
-                    */
-        for( i = 0; i < 4+8+8; i++ )
-          bcp_AddBCLCube(p, p->global_cube_list);
-        if ( p->global_cube_list->cnt >= 4 )
+        p->global_cube_list = bcp_NewBCL(p);
+        if ( p->global_cube_list != NULL )
         {
-          memset(bcp_GetBCLCube(p, p->global_cube_list, 0), 0, p->bytes_per_cube_cnt);  // all vars are illegal
-          memset(bcp_GetBCLCube(p, p->global_cube_list, 1), 0x55, p->bytes_per_cube_cnt);  // all vars are zero
-          memset(bcp_GetBCLCube(p, p->global_cube_list, 2), 0xaa, p->bytes_per_cube_cnt);  // all vars are one
-          memset(bcp_GetBCLCube(p, p->global_cube_list, 3), 0xff, p->bytes_per_cube_cnt);  // all vars are don't care
- 
-          /* assign DC to the upper unused variables */
-  
-          for( i = var_cnt; i < p->bytes_per_cube_cnt*4; i++ )
+          int i;
+                      /*
+                              0..3:	constant cubes for all illegal, all zero, all one and all don't care
+                              4..7:	uint8_t counters for zeros in a list
+                              8..11:	uint8_t counters for ones in a list
+                              4..11: uint16_t counters
+                              12..19: uint16_t counters
+                      */
+          for( i = 0; i < 4+8+8; i++ )
+            bcp_AddBCLCube(p, p->global_cube_list);
+          if ( p->global_cube_list->cnt >= 4 )
           {
-            _bcp_SetCubeVar(p, bcp_GetBCLCube(p, p->global_cube_list, 0), i, 3);
-            _bcp_SetCubeVar(p, bcp_GetBCLCube(p, p->global_cube_list, 1), i, 3);
-            _bcp_SetCubeVar(p, bcp_GetBCLCube(p, p->global_cube_list, 2), i, 3);
-            //_bcp_SetCubeVar(p, bcp_GetBCLCube(p, p->global_cube_list, 3), i, 3);
-          }
+            memset(bcp_GetBCLCube(p, p->global_cube_list, 0), 0, p->bytes_per_cube_cnt);  // all vars are illegal
+            memset(bcp_GetBCLCube(p, p->global_cube_list, 1), 0x55, p->bytes_per_cube_cnt);  // all vars are zero
+            memset(bcp_GetBCLCube(p, p->global_cube_list, 2), 0xaa, p->bytes_per_cube_cnt);  // all vars are one
+            memset(bcp_GetBCLCube(p, p->global_cube_list, 3), 0xff, p->bytes_per_cube_cnt);  // all vars are don't care
+   
+            /* assign DC to the upper unused variables */
+    
+            for( i = var_cnt; i < p->bytes_per_cube_cnt*4; i++ )
+            {
+              _bcp_SetCubeVar(p, bcp_GetBCLCube(p, p->global_cube_list, 0), i, 3);
+              _bcp_SetCubeVar(p, bcp_GetBCLCube(p, p->global_cube_list, 1), i, 3);
+              _bcp_SetCubeVar(p, bcp_GetBCLCube(p, p->global_cube_list, 2), i, 3);
+              //_bcp_SetCubeVar(p, bcp_GetBCLCube(p, p->global_cube_list, 3), i, 3);
+            }
 
-          
-          return 1;
+            
+            return 1;
+          }
+          bcp_DeleteBCL(p, p->global_cube_list);
         }
-        bcp_DeleteBCL(p, p->global_cube_list);
+        bcp_DeleteBCL(p, p->stack_cube_list);
       }
-      bcp_DeleteBCL(p, p->stack_cube_list);
+      bcp_DeleteBCL(p, p->exclude_group_list);
     }
     free(p->cube_to_str);
   }

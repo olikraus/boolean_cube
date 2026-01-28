@@ -5,6 +5,7 @@ COPATH = ../../c-object/co
 
 CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I.
 
+
 # CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I.            
 # gcov -b 
 # lcov --capture --directory . --output-file coverage.info
@@ -46,3 +47,8 @@ coverage: CFLAGS += -fprofile-arcs -ftest-coverage
 coverage: LDFLAGS += -fprofile-arcs -ftest-coverage 
 coverage: clean bcc coverage-exec  coverage-report
 
+# memory leak analysis
+
+memory: CFLAGS += -fsanitize=address
+memory: LDFLAGS += -fsanitize=address
+memory: clean bcc

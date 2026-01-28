@@ -255,8 +255,12 @@ int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp)
   l: the list, on which we apply the group exclusion
   idx:  the cube within l to which we apply the exclusion
   grp_dc_mask:      must contain only 00 (for none-group members) and 11 (for group members)
+  
+  called by 
+    bcp_DoBCLExcludeGroup(bcp p, bcl l, bc grp)
+
 */
-int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
+static int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
 {
   bc cube = bcp_GetBCLCube(p,l,idx);
   __m128i zero_mask = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));       // idx 0: all illegal (00), idx 1: all zero (01), idx 2: all one (10) and idx 3: all don't care (11)
@@ -269,7 +273,7 @@ int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
   unsigned one_cnt;
   int one_pos = -1;          // position of the first 10 variable in the cube
 
-  printf("bcp_DoBCLCubeExcludeGroup: cube=%s\n", bcp_GetStringFromCube(p, cube));
+  // printf("bcp_DoBCLCubeExcludeGroup: cube=%s\n", bcp_GetStringFromCube(p, cube));
   
   zero_cnt = 0;
   one_cnt = 0;
@@ -303,7 +307,7 @@ int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
     }
   }
 
-  printf("bcp_DoBCLCubeExcludeGroup: zero_cnt=%d one_cnt=%d one_pos=%d\n", zero_cnt, one_cnt, one_pos);
+  // printf("bcp_DoBCLCubeExcludeGroup: zero_cnt=%d one_cnt=%d one_pos=%d\n", zero_cnt, one_cnt, one_pos);
   
   if ( one_cnt == 0 && zero_cnt == 0 )
   {
@@ -403,4 +407,16 @@ int bcp_DoBCLExcludeGroup(bcp p, bcl l, bc grp)
   
   bcp_EndCubeStackFrame(p);
   return  1;
+}
+
+
+int bcp_DoBCLExcludeGroupList(bcp p, bcl l, bcl grp_list)
+{
+  int j;
+  for( j = 0; j < grp_list->cnt; j++ )
+  {
+    if ( bcp_DoBCLExcludeGroup(p, l, bcp_GetBCLCube(p, grp_list, j)) == 0 )
+      return 0;
+  }
+  return 1;
 }
