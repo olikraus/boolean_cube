@@ -169,6 +169,7 @@ void internalTest(int var_cnt)
 
   printf("intersection complement test\n");
   nnn = bcp_NewBCLComplementWithIntersection(p, n);  // complement of the complement, so this should be equal to r
+  assert( nnn != NULL );
   //nnn = bcp_NewBCLComplementWithSubtract(p, n);  // complement of the complement, so this should be equal to r
   assert( nnn->cnt != 0 );
   bcp_ShowBCL(p, nnn);
@@ -193,6 +194,7 @@ void internalTest(int var_cnt)
   assert(tautology != 0);
 
 
+  bcp_DeleteBCL(p,  nnn);
   bcp_DeleteBCL(p,  nn);
   bcp_DeleteBCL(p,  n);
   bcp_DeleteBCL(p,  m);
@@ -523,9 +525,12 @@ void exclude_test_sub(const char *expression, const char *group, const char *exp
   
   expr2 = bcp_GetExpressionBCL(p, lexpr);       // convert "l" to a human readable expression, return value must be free'd if not NULL
   assert( expr2 != NULL );
-  
   printf("Exclude test result='%s'\n", expr2);
-  printf("Exclude test expected='%s'\n", bcp_GetExpressionBCL(p, lexpected));
+  free(expr2);
+  expr2 = bcp_GetExpressionBCL(p, lexpected);
+  assert( expr2 != NULL );
+  printf("Exclude test expected='%s'\n", expr2);
+  free(expr2);
   
   
   equal = bcp_IsBCLEqual(p, lexpr, lexpected);                // checks whether the two lists are equal

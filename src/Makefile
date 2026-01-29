@@ -52,3 +52,4 @@ coverage: clean bcc coverage-exec  coverage-report
 memory: CFLAGS += -fsanitize=address
 memory: LDFLAGS += -fsanitize=address
 memory: clean bcc
+	./bcc -test
