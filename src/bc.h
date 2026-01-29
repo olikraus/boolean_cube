@@ -324,6 +324,7 @@ char *bcp_GetExpressionBCL(bcp p, bcl l);       // convert "l" to a human readab
 int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp);                  // obsolete, replaced by bcp_DoBCLExcludeGroup()
 int bcp_DoBCLExcludeGroup(bcp p, bcl l, bc grp);                // 
 int bcp_DoBCLExcludeGroupList(bcp p, bcl l, bcl grp_list);
+int bcp_DoBCLXGroup(bcp p, bcl l);
 
 
 /* bcjson.c */

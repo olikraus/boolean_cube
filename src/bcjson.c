@@ -60,6 +60,11 @@
     
     complement
         { "cmd":"complement", "slot":<int> }
+        
+    xgroup
+      Defines a list of variables, which exclude each other: only one variable of that group must be set in a minterm
+        { "cmd":"xgroup", "expr":<string> }
+      
 
     and	(can be used to get the unate state of variables)
         { "cmd":"and", "slot":<int> }
@@ -93,10 +98,17 @@
       Exchange slot 0 and the given other slot
         { "cmd":"exchange0", "slot":1 }
         
-    copy0
+    copy0                       OBSOLEETE
       Copy slot 0 and the given other slot
         { "cmd":"copy0", "slot":1 }
 
+    copy0to
+      Copy slot 0 content to the given other slot
+        { "cmd":"copy0", "slot":1 }
+        
+    copy0from
+      Copy content from the given other slot to slot 0
+        { "cmd":"copy0", "slot":1 }
 
 */
 
@@ -308,8 +320,9 @@ co bc_ExecuteVector(cco in)
             assert( p != NULL );
           }
         }
-        l = bcp_NewBCLByString(p, bclstr);
+        l = bcp_NewBCLByString(p, bclstr);              // create a bcl from a CR seprated list of cubes        
         assert( l != NULL );
+        bcp_DoBCLXGroup(p, l);
       }
       else if ( coIsVector(o) )
       {
@@ -339,6 +352,7 @@ co bc_ExecuteVector(cco in)
             
           } // coIsStr
         } // for
+        bcp_DoBCLXGroup(p, l);
       } // bcl is vector
 
       o = coMapGet(cmdmap, "expr");             // "expr" is an alternative way to describe a bcl
@@ -351,6 +365,7 @@ co bc_ExecuteVector(cco in)
         {
             l = bcp_NewBCLByBCX(p, x);          // create a bcl from the expression tree 
             bcp_DeleteBCX(p, x);                      // free the expression tree
+            bcp_DoBCLXGroup(p, l);
         }
       }
       
@@ -363,7 +378,7 @@ co bc_ExecuteVector(cco in)
 
       // STEP 2: Execute the command
       
-      arg = (l!=NULL)?l:slot_list[slot];
+      arg = (l!=NULL)?l:slot_list[slot];               // arg is taken from "bcl", "expr", "mtvar" or a given slot.  Slot 0 is used if nothing is provided 
       
       logprint(1, "json cmd %d/%d '%s'", i+1, cnt, cmd);
 
@@ -383,6 +398,25 @@ co bc_ExecuteVector(cco in)
       {
         assert(arg != NULL);
         bcp_MinimizeBCL(p, arg);
+      }
+      else if ( p != NULL &&  strcmp(cmd, "xgroup") == 0 )              // should be for example: "expr":"a&b&c"
+      {
+        assert(arg != NULL);
+        if ( arg->cnt == 1 )
+        {
+          int pos = bcp_AddBCLCubeByCube(p, p->exclude_group_list, bcp_GetBCLCube(p, arg, 0));
+          int i;
+          bc c = bcp_GetBCLCube(p, p->exclude_group_list, pos);
+          for ( i = 0; i < p->var_cnt; i++ )    // in the new cube, ensure that we only have "1" (10) and "-" (11)
+          {
+            if ( bcp_GetCubeVar(p, c, i) < 2 )
+              bcp_SetCubeVar(p, c, i, 3);
+          }
+        }
+        else
+        {
+          logprint(1, "xgroup ignored because minterm count is not 1 (cnt=%d)", arg->cnt );
+        }
       }
       else if ( p != NULL &&  strcmp(cmd, "unused2zero") == 0 ) // obsolete, replaced by group2zero0
       {
@@ -407,7 +441,8 @@ co bc_ExecuteVector(cco in)
       {
         assert(arg != NULL);
         bcp_ComplementBCL(p, arg);
-      }
+        bcp_DoBCLXGroup(p, arg);
+     }
       else if ( p != NULL &&  strcmp(cmd, "and") == 0 )
       {
         assert(arg != NULL);
@@ -464,6 +499,7 @@ co bc_ExecuteVector(cco in)
             coMapAdd(debugMap, "out_result", coNewStr(CO_STRFREE, bcp_GetExpressionBCL(p, slot_list[0])));
 		}
         assert(intersection_result != 0);
+        bcp_DoBCLXGroup(p, slot_list[0]);
         is_empty = 0;
         if ( slot_list[0]->cnt == 0 )
           is_empty = 1;
@@ -474,6 +510,7 @@ co bc_ExecuteVector(cco in)
         assert(arg != NULL);
         bcp_AddBCLCubesByBCL(p, slot_list[0], arg);   // a = a union b 
         bcp_DoBCLSingleCubeContainment(p, slot_list[0]);        
+        bcp_DoBCLXGroup(p, slot_list[0]);
       }
       else if ( p != NULL &&  strcmp(cmd, "group2zero0") == 0 )
       {
@@ -487,6 +524,7 @@ co bc_ExecuteVector(cco in)
         assert(slot_list[0] != NULL);
         assert(arg != NULL);
         subtract_result = bcp_SubtractBCL(p, slot_list[0], arg, 1);   // a = a minus b 
+        bcp_DoBCLXGroup(p, slot_list[0]);
         assert(subtract_result != 0);
         is_empty = 0;
         if ( slot_list[0]->cnt == 0 )

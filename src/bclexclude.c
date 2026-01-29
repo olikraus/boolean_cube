@@ -420,3 +420,10 @@ int bcp_DoBCLExcludeGroupList(bcp p, bcl l, bcl grp_list)
   }
   return 1;
 }
+
+int bcp_DoBCLXGroup(bcp p, bcl l)
+{
+  if ( l == NULL )
+    return 1;
+  return bcp_DoBCLExcludeGroupList(p, l, p->exclude_group_list);
+}
