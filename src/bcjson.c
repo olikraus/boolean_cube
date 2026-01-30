@@ -252,6 +252,9 @@ co bc_ExecuteVector(cco in)
       
     } // isMap
   } // for
+
+  if ( p == NULL ) { p = bcp_New(0); assert( p != NULL ); }
+
   
   if ( p != NULL )      // if a dummy bcp had been created, then convert that bcp to a regular bcp
   {
@@ -401,22 +404,24 @@ co bc_ExecuteVector(cco in)
       }
       else if ( p != NULL &&  strcmp(cmd, "xgroup") == 0 )              // should be for example: "expr":"a&b&c"
       {
-        assert(arg != NULL);
-        if ( arg->cnt == 1 )
-        {
-          int pos = bcp_AddBCLCubeByCube(p, p->exclude_group_list, bcp_GetBCLCube(p, arg, 0));
-          int i;
-          bc c = bcp_GetBCLCube(p, p->exclude_group_list, pos);
-          for ( i = 0; i < p->var_cnt; i++ )    // in the new cube, ensure that we only have "1" (10) and "-" (11)
-          {
-            if ( bcp_GetCubeVar(p, c, i) < 2 )
-              bcp_SetCubeVar(p, c, i, 3);
-          }
-        }
-        else
-        {
-          logprint(1, "xgroup ignored because minterm count is not 1 (cnt=%d)", arg->cnt );
-        }
+		if ( arg != NULL )  // if nothing was provided, then ginore xgroup, might happen because of the db export
+		{
+			if ( arg->cnt == 1 )
+			{
+			  int pos = bcp_AddBCLCubeByCube(p, p->exclude_group_list, bcp_GetBCLCube(p, arg, 0));
+			  int i;
+			  bc c = bcp_GetBCLCube(p, p->exclude_group_list, pos);
+			  for ( i = 0; i < p->var_cnt; i++ )    // in the new cube, ensure that we only have "1" (10) and "-" (11)
+			  {
+				if ( bcp_GetCubeVar(p, c, i) < 2 )
+				  bcp_SetCubeVar(p, c, i, 3);
+			  }
+			}
+			else
+			{
+			  logprint(1, "xgroup ignored because minterm count is not 1 (cnt=%d)", arg->cnt );
+			}
+		}
       }
       else if ( p != NULL &&  strcmp(cmd, "unused2zero") == 0 ) // obsolete, replaced by group2zero0
       {
