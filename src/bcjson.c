@@ -159,7 +159,9 @@ co bc_ExecuteVector(cco in)
   
   assert( coIsVector(in) );
 
-  // PRE PHASE: Collect all variable names
+
+  /*=============================================================*/
+  /* PHASE 1: update parser, collect all variables (consider ignoreVars) */
   for( i = 0; i < cnt; i++ )
   {
     cco cmdmap = coVectorGet(in, i);
@@ -207,7 +209,7 @@ co bc_ExecuteVector(cco in)
       if (coIsStr(o) && p != NULL )
       {
         if ( p == NULL ) { p = bcp_New(0); assert( p != NULL ); }
-          if ( strlen(coStrGet(o)) > 0 )
+        if ( strlen(coStrGet(o)) > 0 )
           p->x_not = coStrGet(o)[0];
       }
         
@@ -236,33 +238,38 @@ co bc_ExecuteVector(cco in)
         const char *str = coStrGet(o);        
         const char **t = &str;
         const char *var;
-        bcp_skip_space(p, t);
-        for(;;)
+        cco ignore_variables = coMapGet(cmdmap, "ignoreVars");
+        if ( ignore_variables == NULL )
         {
-          if ( **t == '\0' )
-            break;
-          var = bcp_get_identifier(p, t);
-          if ( var == NULL )
-            break;
-          if ( var[0] == '\0' )
-            break;
-          bcp_AddVar(p, var);
-        } // for
+          if ( p == NULL ) { p = bcp_New(0); assert( p != NULL ); }
+          bcp_skip_space(p, t);
+          for(;;)
+          {
+            if ( **t == '\0' )
+              break;
+            var = bcp_get_identifier(p, t);
+            if ( var == NULL )
+              break;
+            if ( var[0] == '\0' )
+              break;
+            bcp_AddVar(p, var);
+          } // for
+        }// if ignore_variables
       } // if colIsStr(o)
       
     } // isMap
   } // for
-
-  if ( p == NULL ) { p = bcp_New(0); assert( p != NULL ); }
-
   
   if ( p != NULL )      // if a dummy bcp had been created, then convert that bcp to a regular bcp
   {
       bcp_UpdateFromBCX(p);
+      if ( p->var_list == NULL )
+        bcp_BuildVarList(p);
   }
 
   
-  // MAIN PHASE: Execute each element of the json array  
+  /*=============================================================*/
+  /* PHASE 2: Execute each element of the json array   */
   
   for( i = 0; i < cnt; i++ )
   {
@@ -362,20 +369,34 @@ co bc_ExecuteVector(cco in)
       if (coIsStr(o) && l == NULL )                     // only if the expr is a string and only of the bcl has not been assigned before
       {
         const char *expr_str = coStrGet(o);        
-        //printf("expr: %s\n", expr_str);
-        bcx x = bcp_Parse(p, expr_str, 1, 0);              // assumption: p already contains all variables of expr_str
-        if ( x != NULL )
+        if ( p != NULL )
         {
-            l = bcp_NewBCLByBCX(p, x);          // create a bcl from the expression tree 
-            bcp_DeleteBCX(p, x);                      // free the expression tree
-            bcp_DoBCLXGroup(p, l);
+          logprint(3, "expr: %s", expr_str);
+          bcx x = bcp_Parse(p, expr_str, /* is_not_propagation */ 1,  /* is_register_variables */ 0);              // assumption: p already contains all variables of expr_str
+          if ( x != NULL )
+          {
+              l = bcp_NewBCLByBCX(p, x);          // create a bcl from the expression tree 
+              bcp_DeleteBCX(p, x);                      // free the expression tree
+              bcp_DoBCLXGroup(p, l);
+          }
+        } // p != NULL
+        else
+        {
+          logprint(1, "Can't parse expression '%s', are all expressions defined with ignore variables?", expr_str);
         }
       }
       
       o = coMapGet(cmdmap, "mtvar");             // "mtvar" is another alternative way to describe a bcl: a single minterm with a "1" for each existing variable and "0" otherwise
       if (coIsStr(o) && l == NULL )                     // only if mtvar is a string 
       {
-        l = bcp_NewBCLMinTermByVarList(p, coStrGet(o));
+        if ( p != NULL )
+        {
+          l = bcp_NewBCLMinTermByVarList(p, coStrGet(o));
+        } // p != NULL
+        else
+        {
+          logprint(1, "Can't parse min term variables, are all variables defined with ignore variables?");
+        }        
       }
       
 
@@ -402,26 +423,34 @@ co bc_ExecuteVector(cco in)
         assert(arg != NULL);
         bcp_MinimizeBCL(p, arg);
       }
-      else if ( p != NULL &&  strcmp(cmd, "xgroup") == 0 )              // should be for example: "expr":"a&b&c"
+      else if ( p != NULL && strcmp(cmd, "xgroup") == 0 )              // should be for example: "expr":"a&b&c" or "mtvar":"a b c"
       {
-		if ( arg != NULL )  // if nothing was provided, then ginore xgroup, might happen because of the db export
-		{
-			if ( arg->cnt == 1 )
-			{
-			  int pos = bcp_AddBCLCubeByCube(p, p->exclude_group_list, bcp_GetBCLCube(p, arg, 0));
-			  int i;
-			  bc c = bcp_GetBCLCube(p, p->exclude_group_list, pos);
-			  for ( i = 0; i < p->var_cnt; i++ )    // in the new cube, ensure that we only have "1" (10) and "-" (11)
-			  {
-				if ( bcp_GetCubeVar(p, c, i) < 2 )
-				  bcp_SetCubeVar(p, c, i, 3);
-			  }
-			}
-			else
-			{
-			  logprint(1, "xgroup ignored because minterm count is not 1 (cnt=%d)", arg->cnt );
-			}
-		}
+        if ( l != NULL &&  l->cnt == 1 )
+        {
+          bc c = bcp_GetBCLCube(p, l, 0);
+          int i; 
+          int vcnt = 0;
+          for ( i = 0; i < p->var_cnt; i++ )    // in the new cube, ensure that we only have "1" (10) and "-" (11)
+          {
+            if ( bcp_GetCubeVar(p, c, i) != 2 )
+              bcp_SetCubeVar(p, c, i, 3);
+            else
+              vcnt++;
+          }
+          if ( vcnt > 1 )       // for the exclude group there must be at least 2 variables
+          {
+            int pos = bcp_AddBCLCubeByCube(p, p->exclude_group_list, c);
+            assert( pos >= 0 );
+          }
+          else
+          {
+            logprint(2, "xgroup ignored because minterm contains less than 2 variables" );
+          }
+        }
+        else
+        {
+          logprint(2, "xgroup ignored because minterm count is not 1" );
+        }
       }
       else if ( p != NULL &&  strcmp(cmd, "unused2zero") == 0 ) // obsolete, replaced by group2zero0
       {
@@ -499,10 +528,10 @@ co bc_ExecuteVector(cco in)
 			
 		}
         intersection_result = bcp_IntersectionBCL(p, slot_list[0], arg);   // a = a intersection with b 
-		if ( debugMap != NULL )
-		{
+        if ( debugMap != NULL )
+        {
             coMapAdd(debugMap, "out_result", coNewStr(CO_STRFREE, bcp_GetExpressionBCL(p, slot_list[0])));
-		}
+        }
         assert(intersection_result != 0);
         bcp_DoBCLXGroup(p, slot_list[0]);
         is_empty = 0;
@@ -580,7 +609,7 @@ co bc_ExecuteVector(cco in)
         assert( slot_list[0] != NULL );        
         bcp_CopyBCL(p, slot_list[0], arg);		// similar to "bcl2slot", copy content from arg into slot_list[0], return 0 for error
       }
-      else if ( cmd[0] != '\0' )
+      else if ( p != NULL && cmd[0] != '\0' )
       {
         sprintf(err, "Unknown cmd '%s'", cmd);
       }
@@ -676,8 +705,11 @@ co bc_ExecuteVector(cco in)
     end = clock();
     co e = coNewMap(CO_STRDUP|CO_STRFREE|CO_FREE_VALS);
     assert( e != NULL );
-    coMapAdd(e, "vmap", coClone(p->var_map));   // memory leak !!!
-    coMapAdd(e, "vlist", coClone(p->var_list));
+    if ( p != NULL )
+    {
+      coMapAdd(e, "vmap", coClone(p->var_map));   // memory leak !!!
+      coMapAdd(e, "vlist", coClone(p->var_list));
+    }
     //coMapAdd(e, "time", coNewDbl((double)(end.tms_utime-start.tms_utime)));
     coMapAdd(e, "time", coNewDbl((double)(end-start)/CLOCKS_PER_SEC));
     coMapAdd(output, "", e);
@@ -685,15 +717,18 @@ co bc_ExecuteVector(cco in)
   
   
   // Memory cleanup
-  
-  for( i = 0; i < SLOT_CNT; i++ )
-    if ( slot_list[i] != NULL )
-      bcp_DeleteBCL(p, slot_list[i]);
-    
-  if ( l != NULL )
-      bcp_DeleteBCL(p, l);
 
-  bcp_Delete(p);
+  if ( p != NULL )
+  {
+    for( i = 0; i < SLOT_CNT; i++ )
+      if ( slot_list[i] != NULL )
+        bcp_DeleteBCL(p, slot_list[i]);
+      
+    if ( l != NULL )
+        bcp_DeleteBCL(p, l);
+
+    bcp_Delete(p);
+  }
   
   return output;
 }

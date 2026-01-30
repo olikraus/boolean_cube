@@ -574,8 +574,8 @@ bcl bcp_NewBCLMinTermByVarList(bcp p, const char *s)
         if ( var[0] == '\0' )
           break;
 
-        var_pos_co = coMapGet(p->var_map, var);
-        if ( var_pos_co != NULL )
+        var_pos_co = coMapGet(p->var_map, var);         // get the position of the variable
+        if ( var_pos_co != NULL )                       // only if the variable exists
         {
           assert( coIsDbl(var_pos_co) );
           var_pos = (int)coDblGet(var_pos_co);
