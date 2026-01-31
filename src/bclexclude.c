@@ -418,6 +418,7 @@ int bcp_DoBCLExcludeGroupList(bcp p, bcl l, bcl grp_list)
     if ( bcp_DoBCLExcludeGroup(p, l, bcp_GetBCLCube(p, grp_list, j)) == 0 )
       return 0;
   }
+  bcp_DoBCLSingleCubeContainment(p, l);  /* maybe we should include SCC into bcp_DoBCLExcludeGroup, example was a|b|-c */
   return 1;
 }
 

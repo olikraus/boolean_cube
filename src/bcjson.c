@@ -414,9 +414,15 @@ co bc_ExecuteVector(cco in)
           if ( slot_list[slot] != NULL )
             bcp_DeleteBCL(p, slot_list[slot]);
           slot_list[slot] = l;
+          bcp_DoBCLXGroup(p, slot_list[slot]);
           l = NULL;
-		  is_out_arg = 1;         // this will output "arg" if label0 is used
+          is_out_arg = 1;         // this will output "arg" if label0 is used
         }
+      }
+      else if ( p != NULL && strcmp(cmd, "showxgroup") == 0 )
+      {
+        printf("p->exclude_group_list->cnt=%d\n", p->exclude_group_list->cnt);
+        bcp_ShowBCL(p, p->exclude_group_list);
       }
       else if ( p != NULL &&  strcmp(cmd, "minimize") == 0 )
       {
