@@ -303,7 +303,13 @@ static int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
     one_cnt += __builtin_popcountll(~_mm_cvtsi128_si64(o));
     if ( one_cnt > 0 && one_pos < 0 )
     {
-        one_pos = __builtin_ctzll(~_mm_cvtsi128_si64(o)) / 2 + j*p->vars_per_blk_cnt;
+        one_pos = __builtin_ctzll(~_mm_cvtsi128_si64(o)) / 2;
+        // print128_num(cube[j]);
+        // print128_num(o);
+        // printf("bcp_DoBCLCubeExcludeGroup: idx=%d, Lower 64 bit one_cnt=%d, one_pos=%d, j=%d p->vars_per_blk_cnt=%d\n", idx, one_cnt, one_pos, j, p->vars_per_blk_cnt);
+        one_pos += j*p->vars_per_blk_cnt;
+        // printf("bcp_DoBCLCubeExcludeGroup: one_pos=%d, value=%d\n", one_pos, bcp_GetCubeVar(p, cube, one_pos));
+        assert( bcp_GetCubeVar(p, cube, one_pos) == 2 );             // crosscheck, that our calculation had been correct... 2 is the code for 10, which is the one 
     }
   }
 
@@ -332,9 +338,9 @@ static int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
       r = _mm_xor_si128(_mm_loadu_si128(grp_dc_mask+j), _mm_set1_epi32(-1));           // get the inverted dc mask
       r = _mm_or_si128( r, zero_mask );         // now we have 11 for all none group vars (and the single one) and 01 for all other member variables
       r = _mm_and_si128( r, _mm_loadu_si128(cube+j)  );         // force all other member variables to 01, actually this is only required for 11 variables, but check for this is too expensive
-    _mm_storeu_si128(cube+j, r);          // store the result in the destination cube    
-    bcp_SetCubeVar(p, grp_dc_mask, one_pos, 3);                 // undo the modification from above
+      _mm_storeu_si128(cube+j, r);          // store the result in the destination cube    
     }
+    bcp_SetCubeVar(p, grp_dc_mask, one_pos, 3);                 // undo the modification from above
   }
   else  // one_cnt==0 && zero_cnt > 0
   {
@@ -386,9 +392,9 @@ int bcp_DoBCLExcludeGroup(bcp p, bcl l, bc grp)
 
   //coPrint(p->var_map); puts("");
   
-  puts("bcl:");
-  bcp_ShowBCL(p, l);
-  printf("bcp_DoBCLExcludeGroup: grp_dc_mask=%s\n", bcp_GetStringFromCube(p, grp_dc_mask));
+  // puts("bcl:");
+  //bcp_ShowBCL(p, l);
+  // printf("bcp_DoBCLExcludeGroup: grp_dc_mask=%s\n", bcp_GetStringFromCube(p, grp_dc_mask));
   
   
   for( j = 0; j < l->cnt; j++ )
