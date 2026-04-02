@@ -10,6 +10,18 @@
   https://creativecommons.org/licenses/by-sa/4.0/
 
   Handle variables, which exclude each other
+      Groups of variables, which exclude each other are stored in p->exclude_group_list
+      The function bcp_DoBCLXGroup() will apply p->exclude_group_list and extend the provided bcl.
+      bcp_DoBCLXGroup() will do nothing if p->exclude_group_list is empty
+        xgroup exclusion is applied to
+          bcl
+          expr
+          bcl2slot
+          complement
+          intersection0
+          union0
+          subtract0
+      
 
 */
 #include "bc.h"
@@ -58,8 +70,9 @@
 	Because the "one" assignment might also happen, the function name is misleading, because depending on the 
 	original bcl, the dc vars are excluded or included.
 	
-	This is executed by the "group2zero0" command, which is also misleading, because there might be also a one assignment.
-  
+	JSON: This is executed by the "group2zero0" command, which is also misleading, because there might be also a one assignment.
+        
+        Note: bcl_ExcludeBCLVars() and also "group2zero0" are obsolete and replaced by the bcp_DoBCLExcludeGroupList() and bcp_DoBCLXGroup() functions
   
 */
 
