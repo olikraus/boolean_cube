@@ -18,15 +18,15 @@ CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I$(BCPATH) -I.
 
 SRC = $(wildcard $(BCPATH)/*.c)
 SRC += $(COPATH)/co.c 
-SRC += main.c
+SRC += fcgi_bcc.c
 
 OBJ = $(SRC:.c=.o)
 
-bcc: $(OBJ) 
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
+bcc.fcgi: $(OBJ) 
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@  -lfcgi -lpthread -lrt
 
 clean:	
-	-rm $(OBJ) bcc
+	-rm $(OBJ) bcc.fcgi
 
 
 # build bcc with coverage code
