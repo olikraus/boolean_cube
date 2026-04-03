@@ -160,7 +160,7 @@ int bcc_task(const char *config_json, const char *task_json)
   out_co = bc_ExecuteVector(all_co);
   coWriteJSON(out_co, /* compact */ 1, 1, stdout); // isUTF8 is 0, then output char codes >=128 via \u 
 
-  return coDelete(out_co), coDelete(all_co), coDelete(config_co), coDelete(task_co), 0;
+  return coDelete(out_co), coDelete(all_co), coDelete(config_co), coDelete(task_co), 1;
 }
 
 int main(void)
@@ -194,13 +194,11 @@ int main(void)
       }
 
       int len = atoi(getenv("CONTENT_LENGTH") ? getenv("CONTENT_LENGTH") : "0");
-      if (len < 0)
-        len = 0;
       if (len > MAX_CONFIG_SIZE - 1)
         len = MAX_CONFIG_SIZE - 1;
-      size_t read_len = fread(config->json_data, 1, len, stdin);
-      config->json_data[read_len] = '\0';
-      config->config_len = read_len;
+      fread(config->json_data, 1, len, stdin);
+      config->json_data[len] = '\0';
+      config->config_len = len;
 
       // Sync to disk
       FILE *f = fopen(CONFIG_PATH, "w");
@@ -217,6 +215,7 @@ int main(void)
       pthread_rwlock_unlock(&config->lock);
     }
 
+
     // --- 2. MODE: TASK EXECUTION (Reader) ---
     else if (query && strcmp(query, "mode=task") == 0  && strcmp(method, "POST") == 0)
     {
@@ -227,19 +226,18 @@ int main(void)
       }
 
       int len = atoi(getenv("CONTENT_LENGTH") ? getenv("CONTENT_LENGTH") : "0");
-      if (len < 0)
-        len = 0;
       char *task_data = (char *)malloc(len + 1);
       if (task_data)
       {
         size_t read_len = fread(task_data, 1, len, stdin);
         task_data[read_len] = '\0';
 
+        printf("Content-type: application/json\r\n\r\n");
         bcc_task(config->json_data, task_data);
 
-        printf("Content-type: text/plain\r\n\r\nExecuting Task (PID %d)\n", getpid());
         free(task_data);
       }
+
       else
       {
         printf("Status: 500 Internal Server Error\r\nContent-type: text/plain\r\n\r\nOut of memory\n");
