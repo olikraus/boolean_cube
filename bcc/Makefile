@@ -2,8 +2,15 @@
 
 
 COPATH = ../../c-object/co
+BCPATH = ../src/
 
-CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I.
+CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I$(BCPATH) -I.
+
+BCSRC = bcutil.c bcp.c bcube.c bclcore.c bcselftest.c bccofactor.c 
+BCSRC += bclcontainment.c bcltautology.c bclsubtract.c 
+BCSRC += bclcomplement.c bclsubset.c bclintersection.c
+BCSRC += bclexpand.c bclminimize.c bcjson.c
+BCSRC += bcexpression.c bclexclude.c bcldimacscnf.c
 
 
 # CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I.            
@@ -16,13 +23,9 @@ CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I.
 # CFLAGS = -g -Wall -march=silvermont -fsanitize=address -I$(COPATH) -I.
 #CFLAGS = -g -Wall -march=silvermont -I$(COPATH) -I.
 
-SRC = bcutil.c bcp.c bcube.c bclcore.c bcselftest.c bccofactor.c 
-SRC += bclcontainment.c bcltautology.c bclsubtract.c 
-SRC += bclcomplement.c bclsubset.c bclintersection.c
-SRC += bclexpand.c bclminimize.c
-SRC += bcexpression.c bclexclude.c bcldimacscnf.c
+SRC = $(addprefix $(BCPATH), $(BCSRC))
 SRC += $(COPATH)/co.c 
-SRC += bcjson.c main.c
+SRC += main.c
 
 OBJ = $(SRC:.c=.o)
 
