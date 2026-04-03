@@ -337,6 +337,7 @@ int bcp_DoBCLXGroup(bcp p, bcl l);
 #define SLOT_CNT_STR CREATE_STR2(SLOT_CNT)
 
 
+co bc_ExecuteVector(cco in);
 int bc_ExecuteJSON(FILE *in_fp, FILE *out_fp, int isCompactJSONOutput);
 int bc_ExecuteJSONFiles(const char **json_input_filenames, int input_file_cnt, const char *json_output_filename, int isCompact);
 

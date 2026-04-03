@@ -23,6 +23,8 @@
 #include <errno.h>
 #include <assert.h>
 #include <time.h>
+#include "co.h"
+#include "bc.h"
 
 
 /* --- Configuration Macros --- */
@@ -124,6 +126,43 @@ void init_shared_memory()
   }
 }
 
+
+/* --- Task Execution --- */
+
+
+int bcc_task(const char *config_json, const char *task_json)
+{
+  /* Process configuration and task JSON here */
+  co config_co;
+  co task_co;
+  co all_co = coNewVector(CO_NONE);
+  co out_co;
+  long i, cnt;
+  
+  config_co = coReadJSONByString(config_json);
+  if ( coIsVector(config_co) == 0 ) 
+    return coDelete(config_co), 0;
+  
+  task_co = coReadJSONByString(task_json);
+  if ( coIsVector(task_co) == 0 ) 
+    return coDelete(config_co), coDelete(task_co), 0;
+  
+  cnt = coVectorSize(config_co);
+  for( i = 0; i < cnt; i++ )
+    if ( coVectorAdd(all_co, coVectorGet(config_co, i)) < 0 )
+      return coDelete(all_co), coDelete(config_co), coDelete(task_co), 0;
+
+  cnt = coVectorSize(task_co);
+  for( i = 0; i < cnt; i++ )
+    if ( coVectorAdd(all_co, coVectorGet(task_co, i)) < 0 )
+      return coDelete(all_co), coDelete(config_co), coDelete(task_co), 0;
+
+  out_co = bc_ExecuteVector(all_co);
+  coWriteJSON(out_co, /* compact */ 1, 1, stdout); // isUTF8 is 0, then output char codes >=128 via \u 
+
+  return coDelete(out_co), coDelete(all_co), coDelete(config_co), coDelete(task_co), 0;
+}
+
 int main(void)
 {
   init_shared_memory();
@@ -155,11 +194,13 @@ int main(void)
       }
 
       int len = atoi(getenv("CONTENT_LENGTH") ? getenv("CONTENT_LENGTH") : "0");
+      if (len < 0)
+        len = 0;
       if (len > MAX_CONFIG_SIZE - 1)
         len = MAX_CONFIG_SIZE - 1;
-      fread(config->json_data, 1, len, stdin);
-      config->json_data[len] = '\0';
-      config->config_len = len;
+      size_t read_len = fread(config->json_data, 1, len, stdin);
+      config->json_data[read_len] = '\0';
+      config->config_len = read_len;
 
       // Sync to disk
       FILE *f = fopen(CONFIG_PATH, "w");
@@ -176,7 +217,6 @@ int main(void)
       pthread_rwlock_unlock(&config->lock);
     }
 
-
     // --- 2. MODE: TASK EXECUTION (Reader) ---
     else if (query && strcmp(query, "mode=task") == 0  && strcmp(method, "POST") == 0)
     {
@@ -186,9 +226,25 @@ int main(void)
         pthread_rwlock_rdlock(&config->lock);
       }
 
-      printf("Content-type: text/plain\r\n\r\nExecuting Task (PID %d)\nUsing Config: %s\n", getpid(), config->json_data);
+      int len = atoi(getenv("CONTENT_LENGTH") ? getenv("CONTENT_LENGTH") : "0");
+      if (len < 0)
+        len = 0;
+      char *task_data = (char *)malloc(len + 1);
+      if (task_data)
+      {
+        size_t read_len = fread(task_data, 1, len, stdin);
+        task_data[read_len] = '\0';
 
-      sleep(11);                // Simulate work
+        bcc_task(config->json_data, task_data);
+
+        printf("Content-type: text/plain\r\n\r\nExecuting Task (PID %d)\n", getpid());
+        free(task_data);
+      }
+      else
+      {
+        printf("Status: 500 Internal Server Error\r\nContent-type: text/plain\r\n\r\nOut of memory\n");
+      }
+
       pthread_rwlock_unlock(&config->lock);
     }
 
