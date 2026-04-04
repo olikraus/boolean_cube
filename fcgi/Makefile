@@ -4,7 +4,7 @@
 COPATH = ../../c-object/co
 BCPATH = ../src
 
-CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I$(BCPATH) -I.
+CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I$(BCPATH) -I. -I/usr/include/fastcgi
 
 # CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I.            
 # gcov -b 
