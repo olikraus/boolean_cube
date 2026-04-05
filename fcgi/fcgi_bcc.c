@@ -12,7 +12,6 @@
   indent -bl -bli0 -i2 -nut -npsl -npcs -l140 fcgi_bcc.c
   
 */
-#include <fcgi_stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
@@ -29,6 +28,7 @@
 #ifdef __GLIBC__
     #include <malloc.h>
 #endif
+#include <fcgi_stdio.h>         // include this at the end, so that stdout redefinition is correct
 
 /*=================================================================*/
 
@@ -326,15 +326,20 @@ int bcc_task(const char *config_json, const char *task_json)
   co out_co;
   long i, cnt;
 
+  fprintf(stderr, "[bcc.fcgi] prepartion\n");
+  fflush(stderr);
+
   config_co = coReadJSONByString(config_json);
   if ( config_co == NULL )
   {
     fprintf(stderr, "[bcc.fcgi] Failed to read json config data\n");
+    fflush(stderr);
     return 0;
   }
   if (coIsVector(config_co) == 0)
   {
     fprintf(stderr, "[bcc.fcgi] Failed: Config data is not a json vector\n");
+    fflush(stderr);
     return coDelete(config_co), 0;
   }
 
@@ -342,26 +347,55 @@ int bcc_task(const char *config_json, const char *task_json)
   if ( task_co == NULL )
   {
     fprintf(stderr, "[bcc.fcgi] Failed to read json task data\n");
+    fflush(stderr);
     return coDelete(config_co), 0;
   }
   if (coIsVector(task_co) == 0)
   {
     fprintf(stderr, "[bcc.fcgi] Failed: Task data is not a json vector\n");
+    fflush(stderr);
     return coDelete(config_co), coDelete(task_co), 0;
   }
 
   cnt = coVectorSize(config_co);
   for (i = 0; i < cnt; i++)
     if (coVectorAdd(all_co, coVectorGet(config_co, i)) < 0)
+    {
+      fprintf(stderr, "[bcc.fcgi] Memory error in co lib with config element, pos=%d\n", i);
+      fflush(stderr);
       return coDelete(all_co), coDelete(config_co), coDelete(task_co), 0;
-
+    }
   cnt = coVectorSize(task_co);
   for (i = 0; i < cnt; i++)
     if (coVectorAdd(all_co, coVectorGet(task_co, i)) < 0)
+    {
+      fprintf(stderr, "[bcc.fcgi] Memory error in co lib with task element, pos=%d\n", i);
+      fflush(stderr);
       return coDelete(all_co), coDelete(config_co), coDelete(task_co), 0;
+    }
+
+  fprintf(stderr, "[bcc.fcgi] execution, total elements=%d, task elements=%d\n", coVectorSize(all_co), cnt);
+  fflush(stderr);
 
   out_co = bc_ExecuteVector(all_co);
-  coWriteJSON(out_co, /* compact */ 1, 1, stdout);      // isUTF8 is 0, then output char codes >=128 via \u 
+  if ( out_co && coIsMap(out_co) )
+  {
+
+    fprintf(stderr, "[bcc.fcgi] output generation\n");
+    fflush(stderr);
+
+
+    coWriteJSON(out_co, /* compact */ 1, 1, stderr);      // isUTF8 is 0, then output char codes >=128 via \u 
+    fprintf(stderr, "[bcc.fcgi]\n");
+    fflush(stderr);
+    
+    coWriteJSON(out_co, /* compact */ 1, 1, stdout);      // isUTF8 is 0, then output char codes >=128 via \u 
+    fprintf(stdout, "\n");
+    fflush(stdout);
+  }
+  
+  fprintf(stderr, "[bcc.fcgi] clean-up\n");
+  fflush(stderr);
 
   return coDelete(out_co), coDelete(all_co), coDelete(config_co), coDelete(task_co), 1;
 }
@@ -448,11 +482,13 @@ int main(void)
         size_t read_len = fread(task_data, 1, len, stdin);
         task_data[read_len] = '\0';
 
-        fprintf(stderr, "[bcc.fcgi] Task data read, content-length=%d\n", len);
+        fprintf(stderr, "[bcc.fcgi] Task data read, content-length=%d, config-len=%d\n", len, strlen(config->json_data));
         fflush(stderr);
 
         printf("Content-type: application/json\r\n\r\n");
+        fflush(stdout);
         bcc_task(config->json_data, task_data);
+        fflush(stderr);
         fflush(stdout);
 
         free(task_data);
