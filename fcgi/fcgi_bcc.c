@@ -32,33 +32,32 @@
 
 /*=================================================================*/
 
-/**
- * Returns the approximate total bytes of peak heap usage.
- * Returns 0 if not on a GLIBC system.
- */
+/* 
+  Returns the approximate total Kilo-bytes  (1024) of peak heap usage.
+  Returns 0 if not on a GLIBC system.
+*/
 unsigned long get_heap_usage() 
 {
 #ifndef __GLIBC__
-    /* Return 0 for non-GLIBC systems (like macOS or Musl) 
-       unless you implement an alternative for those platforms. */
+    /* Return 0 for non-GLIBC systems  */
     return 0UL;
 #else
-
     /* Check for glibc 2.33+ to use mallinfo2 */
     #if defined(__GLIBC__) && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 33))
         struct mallinfo2 mi = mallinfo2();
         /* mi.uordblks is the total allocated space in bytes */
-        return (unsigned long)mi.uordblks;
+        return (unsigned long)(mi.uordblks/1024);
     #else
         /* Fallback for older SLES / GLIBC < 2.33 */
         struct mallinfo mi = mallinfo();
         /* Note: in old mallinfo, uordblks is 'int', so we cast to 
            unsigned to handle values up to 2GB properly. */
-        return (unsigned long)((unsigned int)mi.uordblks);
+        return (unsigned long)((unsigned int)mi.uordblks/1024);
     #endif
-
 #endif
 }
+
+
 /*=================================================================*/
 /* Query String Parser */
 
@@ -461,12 +460,13 @@ int main(void)
              "<tr><td><b>Version Control</b></td><td>Layout Version</td><td><code>%d</code></td></tr>"
              "<tr><td><b>Worker Process</b></td><td>Current PID</td><td>%d</td></tr>"
              "<tr><td></td><td>Calls to this PID</td><td>%d</td></tr>"
+             "<tr><td></td><td>Heap Usage</td><td>%lu KB</td></tr>"
              "<tr><td><b>Global Activity</b></td><td>Total Updates</td><td>%lu</td></tr>"
              "<tr><td><b>Configuration</b></td><td>Config Length</td><td>%d bytes</td></tr>"
              "<tr><td><b>Locking Stats</b></td><td>Update Block Events</td><td><b style='color:#d32f2f;'>%lu</b></td></tr>"
              "<tr><td></td><td>Task Block Events</td><td><b style='color:#f57c00;'>%lu</b></td></tr>"
              "</table>",
-             config->layout_version, getpid(), local_call_count, config->update_count, config->config_len, config->update_wait_count,
+             config->layout_version, getpid(), local_call_count, get_heap_usage(), config->update_count, config->config_len, config->update_wait_count,
              config->task_wait_count);
 
       printf("<h3>Global RAM Configuration:</h3><pre>%s</pre>", config->json_data);

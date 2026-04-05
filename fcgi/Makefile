@@ -28,24 +28,12 @@ bcc.fcgi: $(OBJ)
 clean:	
 	-rm $(OBJ) bcc.fcgi
 
-
-# build bcc with coverage code
+ubuntu-install:
+	-mv bcc.fcgi /var/www/html/bcc.fcgi
+        
 
 coverage-report:
 	lcov --capture --directory . --output-file coverage.info
 	genhtml coverage.info --output-directory out
 	@echo "Coverage report in 'out/' folder."
 
-coverage-exec:
-	./bcc -test
-
-coverage: CFLAGS += -fprofile-arcs -ftest-coverage 
-coverage: LDFLAGS += -fprofile-arcs -ftest-coverage 
-coverage: clean bcc coverage-exec  coverage-report
-
-# memory leak analysis
-
-memory: CFLAGS += -fsanitize=address
-memory: LDFLAGS += -fsanitize=address
-memory: clean bcc
-	./bcc -test
