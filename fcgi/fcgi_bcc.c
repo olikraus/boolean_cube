@@ -26,14 +26,156 @@
 #include "co.h"
 #include "bc.h"
 
+/*=================================================================*/
+/* Query String Parser */
+
+#define URL_QUERY_PAIR_MAX 16
+
+/* one key value pair for the breakdown of the query string: k1=v1&k2=v2... */
+typedef struct
+{
+  char *key;
+  char *val;
+} query_pair_t;
+
+query_pair_t query_pairs[URL_QUERY_PAIR_MAX];
+
+
+
+/* Converts a hex character to its integer value. */
+static int hex_to_int(char c)
+{
+  if (c >= '0' && c <= '9')
+    return c - '0';
+  if (c >= 'a' && c <= 'f')
+    return c - 'a' + 10;
+  if (c >= 'A' && c <= 'F')
+    return c - 'A' + 10;
+  return -1;
+}
+
+/*
+ Decodes a URL-encoded string in-place.
+ Handles '+' as space and '%XX' hex sequences.
+*/
+void url_decode(char *s)
+{
+  char *src = s;
+  char *dst = s;
+  while (*src)
+  {
+    if (*src == '+')
+    {
+      *dst++ = ' ';
+      src++;
+    }
+    else if (*src == '%' && isxdigit(src[1]) && isxdigit(src[2]))
+    {
+      int high = hex_to_int(src[1]);
+      int low = hex_to_int(src[2]);
+      *dst++ = (char) ((high << 4) | low);
+      src += 3;
+    }
+    else
+    {
+      *dst++ = *src++;
+    }
+  }
+  *dst = '\0';
+}
+
+void init_query()
+{
+  for (int i = 0; i < URL_QUERY_PAIR_MAX; i++)
+  {
+    query_pairs[i].key = NULL;
+    query_pairs[i].val = NULL;
+  }
+}
+
+void free_query()
+{
+  for (int i = 0; i < URL_QUERY_PAIR_MAX; i++)
+  {
+    if ( query_pairs[i].key != NULL )
+      free(query_pairs[i].key);
+    if ( query_pairs[i].val != NULL )
+      free(query_pairs[i].val);
+    query_pairs[i].key = NULL;
+    query_pairs[i].val = NULL;
+  }
+}
+
+/*
+  int parse_query()
+
+  get the query string from the environment variable and return a key/value pairs in the global array query_pairs.
+  returns the number of key/value pairs (filled elements in the query_pairs array)
+
+  requires a prior call to init_query() and a call ti free_query() after the array content has been processed.
+*/
+int parse_query()
+{
+  char *query_env = getenv("QUERY_STRING");
+  if (!query_env || strlen(query_env) == 0)
+  {
+    return 0;
+  }
+
+  // Work on a copy because strsep modifies the string
+  char *query_copy = strdup(query_env);
+  if (!query_copy)
+    return 0;
+
+  char *token;
+  char *rest = query_copy;
+  int count = 0;
+
+  // Outer loop: Split by '&'
+  while ((token = strsep(&rest, "&")) != NULL && count < URL_QUERY_PAIR_MAX - 1)
+  {
+    if (*token == '\0')
+      continue;                 // Handle empty pairs like &&
+
+    char *key_part = strsep(&token, "=");
+    char *val_part = token;     // Remaining part after '='
+
+    if (key_part)
+    {
+      url_decode(key_part);
+      query_pairs[count].key = strdup(key_part);
+    }
+
+    // If val_part is NULL, the query had "key" instead of "key=val"
+    if (val_part)
+    {
+      url_decode(val_part);
+      query_pairs[count].val = strdup(val_part);
+    }
+    else
+    {
+      query_pairs[count].val = strdup("");      // Default to empty string
+    }
+
+    count++;
+  }
+
+  free(query_copy);
+  return count;
+}
+
+
+
+/*=================================================================*/
+/* Shared Memory Configuration Data */
+
 
 /* --- Configuration Macros --- */
 #define LAYOUT_VERSION 20260403 /* Increment this to force a global reset */
 #define SHM_NAME "/fastcgi_config_ram"
 #define CONFIG_PATH "/tmp/config.json"
-
-
 #define MAX_CONFIG_SIZE (1024*128)
+
 
 
 /* --- Shared Memory Structure --- */
@@ -54,6 +196,7 @@ typedef struct
 shared_config_t *config = NULL;
 int local_call_count = 0;
 const size_t shm_size = sizeof(shared_config_t);
+
 
 /* --- Helper: Load Disk Data to RAM --- */
 void load_from_disk()
@@ -127,8 +270,8 @@ void init_shared_memory()
 }
 
 
-/* --- Task Execution --- */
-
+/*=================================================================*/
+/* task execution: bcc call  */
 
 int bcc_task(const char *config_json, const char *task_json)
 {
@@ -138,30 +281,34 @@ int bcc_task(const char *config_json, const char *task_json)
   co all_co = coNewVector(CO_NONE);
   co out_co;
   long i, cnt;
-  
+
   config_co = coReadJSONByString(config_json);
-  if ( coIsVector(config_co) == 0 ) 
+  if (coIsVector(config_co) == 0)
     return coDelete(config_co), 0;
-  
+
   task_co = coReadJSONByString(task_json);
-  if ( coIsVector(task_co) == 0 ) 
+  if (coIsVector(task_co) == 0)
     return coDelete(config_co), coDelete(task_co), 0;
-  
+
   cnt = coVectorSize(config_co);
-  for( i = 0; i < cnt; i++ )
-    if ( coVectorAdd(all_co, coVectorGet(config_co, i)) < 0 )
+  for (i = 0; i < cnt; i++)
+    if (coVectorAdd(all_co, coVectorGet(config_co, i)) < 0)
       return coDelete(all_co), coDelete(config_co), coDelete(task_co), 0;
 
   cnt = coVectorSize(task_co);
-  for( i = 0; i < cnt; i++ )
-    if ( coVectorAdd(all_co, coVectorGet(task_co, i)) < 0 )
+  for (i = 0; i < cnt; i++)
+    if (coVectorAdd(all_co, coVectorGet(task_co, i)) < 0)
       return coDelete(all_co), coDelete(config_co), coDelete(task_co), 0;
 
   out_co = bc_ExecuteVector(all_co);
-  coWriteJSON(out_co, /* compact */ 1, 1, stdout); // isUTF8 is 0, then output char codes >=128 via \u 
+  coWriteJSON(out_co, /* compact */ 1, 1, stdout);      // isUTF8 is 0, then output char codes >=128 via \u 
 
   return coDelete(out_co), coDelete(all_co), coDelete(config_co), coDelete(task_co), 1;
 }
+
+/*=================================================================*/
+/* fast CGI main loop  */
+
 
 int main(void)
 {
@@ -217,7 +364,7 @@ int main(void)
 
 
     // --- 2. MODE: TASK EXECUTION (Reader) ---
-    else if (query && strcmp(query, "mode=task") == 0  && strcmp(method, "POST") == 0)
+    else if (query && strcmp(query, "mode=task") == 0 && strcmp(method, "POST") == 0)
     {
       if (pthread_rwlock_tryrdlock(&config->lock) != 0)
       {
@@ -226,7 +373,7 @@ int main(void)
       }
 
       int len = atoi(getenv("CONTENT_LENGTH") ? getenv("CONTENT_LENGTH") : "0");
-      char *task_data = (char *)malloc(len + 1);
+      char *task_data = (char *) malloc(len + 1);
       if (task_data)
       {
         size_t read_len = fread(task_data, 1, len, stdin);
@@ -273,12 +420,13 @@ int main(void)
              "<tr><td><b>Locking Stats</b></td><td>Update Block Events</td><td><b style='color:#d32f2f;'>%lu</b></td></tr>"
              "<tr><td></td><td>Task Block Events</td><td><b style='color:#f57c00;'>%lu</b></td></tr>"
              "</table>",
-             config->layout_version, getpid(), local_call_count, config->update_count, config->config_len, config->update_wait_count, config->task_wait_count);
+             config->layout_version, getpid(), local_call_count, config->update_count, config->config_len, config->update_wait_count,
+             config->task_wait_count);
 
       printf("<h3>Global RAM Configuration:</h3><pre>%s</pre>", config->json_data);
       printf("</div></body></html>");
       pthread_rwlock_unlock(&config->lock);
     }
-  } // while FCGI
+  }                             // while FCGI
   return 0;
 }
