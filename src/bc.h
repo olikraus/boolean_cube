@@ -46,7 +46,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
-#include "co.h"
+#include "co.h"         /* this will also include FCGI_stdio.h */
 
 
 /* forward declarations */

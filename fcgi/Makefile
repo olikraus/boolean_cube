@@ -4,7 +4,9 @@
 COPATH = ../../c-object/co
 BCPATH = ../src
 
-CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I$(BCPATH) -I. -I/usr/include/fastcgi
+# -DCO_FCGI will include FCGI_stdio.h in c-object and bcc sources
+# run 'make clean' if the sources had been created for the commandline version of bcc
+CFLAGS = -g -march=silvermont  -Wall  -DCO_FCGI -I$(COPATH) -I$(BCPATH) -I. -I/usr/include/fastcgi
 
 # CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I.            
 # gcov -b 
@@ -31,7 +33,6 @@ clean:
 ubuntu-install:
 	-mv bcc.fcgi /var/www/html/bcc.fcgi
         
-
 ubuntu-post-task:
 	curl -v -H "Content-Type: application/json" -d '[]' "http://localhost/bcc.fcgi?mode=update"
 	curl -v -H "Content-Type: application/json" --data @../json/intersection_xgroups.json "http://localhost/bcc.fcgi?mode=task"

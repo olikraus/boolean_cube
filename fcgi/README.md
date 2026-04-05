@@ -6,7 +6,13 @@ The following calls are supported:
  * GET No URL arguments: Show status web page.
  * POST mode=task: Read bcc json and generate result
  * POST mode=update: Read bcc json and reuse this json for all tasks as prefix
- 
+
+# Build
+
+Requires the definition of `CO_FCGI` so that c-object uses the redefined `FILE` and stdio macros.
+Also execute a `make clean` to ensure that all files are recompiled.
+
+
 # Deploy
 
 ## Ubuntu, Apache2
