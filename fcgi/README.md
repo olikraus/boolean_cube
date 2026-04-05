@@ -14,4 +14,15 @@ The following calls are supported:
 sudo cp bcc.fcgi /var/www/html/.
 ```
 
+# Cleanup
+
+Kill all existing bcc.fcgi processes:
+```
+sudo pkill bcc.fcgi
+```
+Clear the shared memory segment to reset the stuck lock:
+```
+sudo rm /dev/shm/fastcgi_config_ram
+```
+
 

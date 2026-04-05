@@ -213,9 +213,9 @@ const char *get_query_val(const char *key)
 
 
 /* --- Configuration Macros --- */
-#define LAYOUT_VERSION 20260403 /* Increment this to force a global reset */
+#define LAYOUT_VERSION 20260404 /* Increment this to force a global reset */
 #define SHM_NAME "/fastcgi_config_ram"
-#define CONFIG_PATH "/tmp/config.json"
+#define CONFIG_PATH "/tmp/fcgi_bcc_config.json"
 #define MAX_CONFIG_SIZE (1024*128)
 
 
@@ -231,6 +231,7 @@ typedef struct
 
   // Global Counters (Shared across all worker processes)
   unsigned long update_count;   /* Successful config updates */
+  unsigned long task_count;     /* Successful task executions */
   unsigned long update_wait_count;      /* Times an update had to wait for tasks */
   unsigned long task_wait_count;        /* Times a task had to wait for an update */
 } shared_config_t;
@@ -250,13 +251,13 @@ void load_from_disk()
     config->json_data[len] = '\0';
     config->config_len = len;
     fclose(f);
-    fprintf(stderr, "[fcgi_task] RAM populated from %s\n", CONFIG_PATH);
+    fprintf(stderr, "[bcc.fcgi] RAM populated from %s\n", CONFIG_PATH);
   }
   else
   {
-    strcpy(config->json_data, "{\"status\": \"initialized_fresh\"}");
+    strcpy(config->json_data, "[]");            // default config data is an empty array
     config->config_len = strlen(config->json_data);
-    fprintf(stderr, "[fcgi_task] No disk file. RAM initialized with default JSON.\n");
+    fprintf(stderr, "[bcc.fcgi] No disk file. RAM initialized with default JSON.\n");
   }
 }
 
@@ -294,18 +295,19 @@ void init_shared_memory()
     pthread_rwlock_wrlock(&config->lock);
     config->layout_version = LAYOUT_VERSION;
     config->update_count = 0;
+    config->task_count = 0;
     config->update_wait_count = 0;
     config->task_wait_count = 0;
     config->config_len = 0;
     load_from_disk();
     config->is_initialized = 1;
     pthread_rwlock_unlock(&config->lock);
-    fprintf(stderr, "[fcgi_task] SHM v%d created and initialized.\n", LAYOUT_VERSION);
+    fprintf(stderr, "[bcc.fcgi] SHM v%d created and initialized.\n", LAYOUT_VERSION);
   }
   else if (config->layout_version != LAYOUT_VERSION)
   {
     // Version mismatch detected
-    fprintf(stderr, "[fcgi_task] Version mismatch (RAM:%d vs Bin:%d). Wiping SHM...\n", config->layout_version, LAYOUT_VERSION);
+    fprintf(stderr, "[bcc.fcgi] Version mismatch (RAM:%d vs Bin:%d). Wiping SHM...\n", config->layout_version, LAYOUT_VERSION);
     shm_unlink(SHM_NAME);
     init_shared_memory();       // Recurse to create the fresh segment
   }
@@ -325,12 +327,28 @@ int bcc_task(const char *config_json, const char *task_json)
   long i, cnt;
 
   config_co = coReadJSONByString(config_json);
+  if ( config_co == NULL )
+  {
+    fprintf(stderr, "[bcc.fcgi] Failed to read json config data\n");
+    return 0;
+  }
   if (coIsVector(config_co) == 0)
+  {
+    fprintf(stderr, "[bcc.fcgi] Failed: Config data is not a json vector\n");
     return coDelete(config_co), 0;
+  }
 
   task_co = coReadJSONByString(task_json);
+  if ( task_co == NULL )
+  {
+    fprintf(stderr, "[bcc.fcgi] Failed to read json task data\n");
+    return coDelete(config_co), 0;
+  }
   if (coIsVector(task_co) == 0)
+  {
+    fprintf(stderr, "[bcc.fcgi] Failed: Task data is not a json vector\n");
     return coDelete(config_co), coDelete(task_co), 0;
+  }
 
   cnt = coVectorSize(config_co);
   for (i = 0; i < cnt; i++)
@@ -359,12 +377,15 @@ int main(void)
   while (FCGI_Accept() >= 0)
   {
     local_call_count++;
+    fprintf(stderr, "[bcc.fcgi] called, local_call_count = %d\n", local_call_count);
+    fflush(stderr);
 
     // Self-Healing Check
     // If another process updated the version, re-attach before processing
     if (config->layout_version != LAYOUT_VERSION)
     {
-      fprintf(stderr, "[fcgi_task] PID %d detected updated SHM layout. Re-mapping...\n", getpid());
+      fprintf(stderr, "[bcc.fcgi] PID %d detected updated SHM layout. Re-mapping...\n", getpid());
+      fflush(stderr);
       init_shared_memory();
     }
 
@@ -401,9 +422,11 @@ int main(void)
       }
 
       __sync_fetch_and_add(&config->update_count, 1);
-      fprintf(stderr, "[fcgi_task] Update successful (Contention: %s)\n", blocked ? "Yes" : "No");
+      fprintf(stderr, "[bcc.fcgi] Update to %s successful, content-length=%d, config size=%d (Contention: %s)\n", CONFIG_PATH, len, (int)strlen(config->json_data), blocked ? "Yes" : "No");
+      fflush(stderr);
 
-      printf("Content-type: text/plain\r\n\r\nUpdate Successful (v%d).\n", LAYOUT_VERSION);
+      printf("Content-type: application/json\r\n\r\n%s", config->json_data);
+      fflush(stdout);
       pthread_rwlock_unlock(&config->lock);
     }
 
@@ -416,6 +439,7 @@ int main(void)
         __sync_fetch_and_add(&config->task_wait_count, 1);
         pthread_rwlock_rdlock(&config->lock);
       }
+      __sync_fetch_and_add(&config->task_count, 1);
 
       int len = atoi(getenv("CONTENT_LENGTH") ? getenv("CONTENT_LENGTH") : "0");
       char *task_data = (char *) malloc(len + 1);
@@ -424,8 +448,12 @@ int main(void)
         size_t read_len = fread(task_data, 1, len, stdin);
         task_data[read_len] = '\0';
 
+        fprintf(stderr, "[bcc.fcgi] Task data read, content-length=%d\n", len);
+        fflush(stderr);
+
         printf("Content-type: application/json\r\n\r\n");
         bcc_task(config->json_data, task_data);
+        fflush(stdout);
 
         free(task_data);
       }
@@ -433,11 +461,11 @@ int main(void)
       else
       {
         printf("Status: 500 Internal Server Error\r\nContent-type: text/plain\r\n\r\nOut of memory\n");
+        fflush(stdout);
       }
-
       pthread_rwlock_unlock(&config->lock);
     }
-
+    
     // --- 3. DASHBOARD (Observer) ---
     else
     {
@@ -462,18 +490,21 @@ int main(void)
              "<tr><td></td><td>Calls to this PID</td><td>%d</td></tr>"
              "<tr><td></td><td>Heap Usage</td><td>%lu KB</td></tr>"
              "<tr><td><b>Global Activity</b></td><td>Total Updates</td><td>%lu</td></tr>"
+             "<tr><td></td><td>Total Tasks</td><td>%lu</td></tr>"
              "<tr><td><b>Configuration</b></td><td>Config Length</td><td>%d bytes</td></tr>"
              "<tr><td><b>Locking Stats</b></td><td>Update Block Events</td><td><b style='color:#d32f2f;'>%lu</b></td></tr>"
              "<tr><td></td><td>Task Block Events</td><td><b style='color:#f57c00;'>%lu</b></td></tr>"
              "</table>",
-             config->layout_version, getpid(), local_call_count, get_heap_usage(), config->update_count, config->config_len, config->update_wait_count,
-             config->task_wait_count);
+             config->layout_version, getpid(), local_call_count, get_heap_usage(), config->update_count, config->task_count, config->config_len, config->update_wait_count, config->task_wait_count);
 
       printf("<h3>Global RAM Configuration:</h3><pre>%s</pre>", config->json_data);
       printf("</div></body></html>");
+      fflush(stdout);
       pthread_rwlock_unlock(&config->lock);
     }
+    
     free_query();
-  }                             // while FCGI
+  }
+
   return 0;
 }

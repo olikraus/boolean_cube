@@ -32,8 +32,7 @@ ubuntu-install:
 	-mv bcc.fcgi /var/www/html/bcc.fcgi
         
 
-coverage-report:
-	lcov --capture --directory . --output-file coverage.info
-	genhtml coverage.info --output-directory out
-	@echo "Coverage report in 'out/' folder."
+ubuntu-post-task:
+	curl -v -H "Content-Type: application/json" -d '[]' "http://localhost/bcc.fcgi?mode=update"
+	curl -v -H "Content-Type: application/json" --data @../json/intersection_xgroups.json "http://localhost/bcc.fcgi?mode=task"
 
