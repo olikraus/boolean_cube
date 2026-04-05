@@ -14,6 +14,7 @@
 */
 #include <fcgi_stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -25,7 +26,39 @@
 #include <time.h>
 #include "co.h"
 #include "bc.h"
+#ifdef __GLIBC__
+    #include <malloc.h>
+#endif
 
+/*=================================================================*/
+
+/**
+ * Returns the approximate total bytes of peak heap usage.
+ * Returns 0 if not on a GLIBC system.
+ */
+unsigned long get_heap_usage() 
+{
+#ifndef __GLIBC__
+    /* Return 0 for non-GLIBC systems (like macOS or Musl) 
+       unless you implement an alternative for those platforms. */
+    return 0UL;
+#else
+
+    /* Check for glibc 2.33+ to use mallinfo2 */
+    #if defined(__GLIBC__) && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 33))
+        struct mallinfo2 mi = mallinfo2();
+        /* mi.uordblks is the total allocated space in bytes */
+        return (unsigned long)mi.uordblks;
+    #else
+        /* Fallback for older SLES / GLIBC < 2.33 */
+        struct mallinfo mi = mallinfo();
+        /* Note: in old mallinfo, uordblks is 'int', so we cast to 
+           unsigned to handle values up to 2GB properly. */
+        return (unsigned long)((unsigned int)mi.uordblks);
+    #endif
+
+#endif
+}
 /*=================================================================*/
 /* Query String Parser */
 
@@ -164,6 +197,16 @@ int parse_query()
   return count;
 }
 
+const char *get_query_val(const char *key)
+{
+  for (int i = 0; i < URL_QUERY_PAIR_MAX; i++)
+  {
+    if (query_pairs[i].key && strcmp(query_pairs[i].key, key) == 0)
+      return query_pairs[i].val;
+  }
+  return NULL;
+}
+
 
 
 /*=================================================================*/
@@ -178,7 +221,7 @@ int parse_query()
 
 
 
-/* --- Shared Memory Structure --- */
+/* Shared Memory Structure */
 typedef struct
 {
   int layout_version;           /* Version tracking for hot-swapping */
@@ -198,7 +241,7 @@ int local_call_count = 0;
 const size_t shm_size = sizeof(shared_config_t);
 
 
-/* --- Helper: Load Disk Data to RAM --- */
+/* Helper: Load Disk Data to RAM */
 void load_from_disk()
 {
   FILE *f = fopen(CONFIG_PATH, "r");
@@ -218,7 +261,7 @@ void load_from_disk()
   }
 }
 
-/* --- Helper: Setup/Repair Shared Memory --- */
+/* Helper: Setup/Repair Shared Memory */
 void init_shared_memory()
 {
   // 1. If already mapped to old version, unmap first
@@ -318,7 +361,7 @@ int main(void)
   {
     local_call_count++;
 
-    // --- Self-Healing Check ---
+    // Self-Healing Check
     // If another process updated the version, re-attach before processing
     if (config->layout_version != LAYOUT_VERSION)
     {
@@ -326,11 +369,14 @@ int main(void)
       init_shared_memory();
     }
 
-    char *query = getenv("QUERY_STRING");
     char *method = getenv("REQUEST_METHOD");
+    const char *mode;
+    init_query();
+    parse_query();
+    mode = get_query_val("mode");
 
     // --- 1. MODE: CONFIG UPDATE (Writer) ---
-    if (query && strcmp(query, "mode=update") == 0 && strcmp(method, "POST") == 0)
+    if (mode && strcmp(mode, "update") == 0 && method && strcmp(method, "POST") == 0)
     {
       int blocked = 0;
       if (pthread_rwlock_trywrlock(&config->lock) != 0)
@@ -364,7 +410,7 @@ int main(void)
 
 
     // --- 2. MODE: TASK EXECUTION (Reader) ---
-    else if (query && strcmp(query, "mode=task") == 0 && strcmp(method, "POST") == 0)
+    else if (mode && strcmp(mode, "task") == 0 && method && strcmp(method, "POST") == 0)
     {
       if (pthread_rwlock_tryrdlock(&config->lock) != 0)
       {
@@ -427,6 +473,7 @@ int main(void)
       printf("</div></body></html>");
       pthread_rwlock_unlock(&config->lock);
     }
+    free_query();
   }                             // while FCGI
   return 0;
 }
