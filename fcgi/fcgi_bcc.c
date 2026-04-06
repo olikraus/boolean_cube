@@ -215,7 +215,7 @@ const char *get_query_val(const char *key)
 /* --- Configuration Macros --- */
 #define LAYOUT_VERSION 20260406 /* Increment this to force a global reset */
 #define SHM_NAME "/fcgi_bcc_config_ram"
-#define CONFIG_PATH "/tmp/fcgi_bcc_config.json"
+#define CONFIG_PATH "/var/lib/fcgi_bcc/config.json"
 #define MAX_CONFIG_SIZE (1024*128)
 
 
@@ -469,7 +469,7 @@ int main(void)
         }
         else
         {
-          fprintf(stderr, "[bcc.fcgi] Failed to open %s for writing\n", CONFIG_PATH);
+          fprintf(stderr, "[bcc.fcgi] Failed to open %s for writing: %s\n", CONFIG_PATH, strerror(errno));
         }
         free(upload_buffer);
       }
@@ -511,17 +511,25 @@ int main(void)
     {
       if (config->active_buffer < 0) read_config_data_from_disk();
       int active = config->active_buffer;
+      
+      // Check file status for dashboard
+      int file_readable = (access(CONFIG_PATH, R_OK) == 0);
+      int file_writable = (access(CONFIG_PATH, W_OK) == 0);
+      struct stat st;
+      long file_size = -1;
+      if (stat(CONFIG_PATH, &st) == 0) file_size = (long)st.st_size;
+
       printf("Content-type: text/html\r\n\r\n");
       printf("<html><head><style>"
              "body{font-family:sans-serif; background:#f4f7f6; padding:40px;}"
              ".container{max-width:900px; margin:auto; background:white; padding:30px; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.05);}"
              "table{width:100%%; border-collapse:collapse; margin:20px 0;}"
-             "th, td{text-align:left; padding:12px; border-bottom:1px dotted #ccc;}"
+             "th, td{text-align:left; padding:8px; border-bottom:1px dotted #ccc;}"
              "th{background:#f8f9fa;}"
              "pre{background:#2d2d2d; color:#61dafb; padding:15px; border-radius:6px; overflow:auto;}"
              ".status-tag{background:#e1f5fe; color:#01579b; padding:4px 8px; border-radius:4px; font-size:0.8em;}"
              "</style></head><body><div class='container'>");
-      printf("<h1>FastCGI Node Monitor <span class='status-tag'>Active</span></h1>");
+      printf("<h1>FastCGI BCC Monitor</h1>");
       printf("<table>"
              "<tr><th>Metric Group</th><th>Field</th><th>Value</th></tr>"
              "<tr><td><b>Version Control</b></td><td>Layout Version</td><td><code>%d</code></td></tr>"
@@ -533,8 +541,11 @@ int main(void)
              "<tr><td></td><td>Disk Reloads</td><td>%lu</td></tr>"
              "<tr><td><b>Configuration</b></td><td>Active Buffer</td><td>%d</td></tr>"
              "<tr><td></td><td>Config Length</td><td>%d bytes</td></tr>"
+             "<tr><td></td><td>Max Config Size</td><td>%d bytes</td></tr>"
+             "<tr><td><b>Persistence</b></td><td>Config Path</td><td><code>%s</code></td></tr>"
+             "<tr><td></td><td>File Status</td><td>%s / %s (Size: %ld)</td></tr>"
              "</table>",
-             config->layout_version, getpid(), local_call_count, get_heap_usage(), config->update_count, config->task_count, config->disk_read_count, active, (active >= 0) ? config->config_len[active] : 0);
+             config->layout_version, getpid(), local_call_count, get_heap_usage(), config->update_count, config->task_count, config->disk_read_count, active, (active >= 0) ? config->config_len[active] : 0, MAX_CONFIG_SIZE, CONFIG_PATH, file_readable ? "Readable" : "<b style='color:red'>Unreadable</b>", file_writable ? "Writable" : "<b style='color:red'>Read-Only</b>", file_size);
       printf("<h3>Global RAM Configuration (Buffer %d):</h3><pre>%s</pre>", active, (active >= 0) ? config->json_data[active] : "N/A");
       printf("</div></body></html>");
       fflush(stdout);
