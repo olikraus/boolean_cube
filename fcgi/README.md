@@ -33,7 +33,7 @@ sudo pkill bcc.fcgi
 ```
 Clear the shared memory segment to reset the stuck lock:
 ```
-sudo rm /dev/shm/fastcgi_config_ram
+sudo rm /dev/shm/fcgi_bcc_config_ram
 ```
 Restart Apache2
 ```

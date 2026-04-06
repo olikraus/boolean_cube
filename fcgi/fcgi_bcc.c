@@ -214,7 +214,7 @@ const char *get_query_val(const char *key)
 
 /* --- Configuration Macros --- */
 #define LAYOUT_VERSION 20260406 /* Increment this to force a global reset */
-#define SHM_NAME "/fastcgi_config_ram"
+#define SHM_NAME "/fcgi_bcc_config_ram"
 #define CONFIG_PATH "/tmp/fcgi_bcc_config.json"
 #define MAX_CONFIG_SIZE (1024*128)
 
@@ -235,8 +235,8 @@ typedef struct
   // Global Counters (Shared across all worker processes)
   unsigned long update_count;   /* Successful config updates */
   unsigned long task_count;     /* Successful task executions */
-  unsigned long update_wait_count;      /* Times an update had to wait for lock (deprecated) */
-  unsigned long task_wait_count;        /* Times a task had to wait for lock (deprecated) */
+  unsigned long update_wait_count;      /* (deprecated) */
+  unsigned long task_wait_count;        /* (deprecated) */
   unsigned long disk_read_count;        /* Number of times read_config_data_from_disk was called */
 } shared_config_t;
 
@@ -248,47 +248,62 @@ const size_t shm_size = sizeof(shared_config_t);
 /* Helper: Load Disk Data to RAM with Double Buffering and Atomic Swap */
 void read_config_data_from_disk()
 {
-  // 1. If the read_config_data_in_progress flag is set, then wait until it is cleared and exit
-  // Use atomic test-and-set to ensure only one process performs the read
+  // 1. if the read_config_data_in_progress flag is set, then wait until it is cleared and exit
   if (__sync_lock_test_and_set(&config->read_in_progress, 1))
   {
-    // Someone else is reading. Wait until they finish.
-    while (config->read_in_progress)
-    {
-      usleep(1000); // 1ms wait
-    }
+    while (config->read_in_progress) usleep(1000);
     return;
   }
 
   // 2. set the read_config_data_in_progress flag (Done by test_and_set above)
   __sync_fetch_and_add(&config->disk_read_count, 1);
 
-  // Determine which buffer to use
   int current_active = config->active_buffer;
-  int target_buffer;
-  
-  // 4. if both buffers are empty, place the file in one buffer and enable that buffer
-  // (We use -1 as "uninitialized" state for active_buffer)
-  if (current_active < 0)
-    target_buffer = 0;
-  else
-    target_buffer = 1 - current_active;
+  int target_buffer = (current_active < 0) ? 0 : (1 - current_active);
+
+  struct stat st;
+  int fd = open(CONFIG_PATH, O_RDONLY);
+  int success = 0;
 
   // 3. read data from the file, default to "[]" if file doesn't exist
-  FILE *f = fopen(CONFIG_PATH, "r");
-  if (f)
+  if (fd != -1)
   {
-    size_t len = fread(config->json_data[target_buffer], 1, MAX_CONFIG_SIZE - 1, f);
-    config->json_data[target_buffer][len] = '\0';
-    config->config_len[target_buffer] = len;
-    fclose(f);
-    fprintf(stderr, "[bcc.fcgi] Buffer %d populated from %s\n", target_buffer, CONFIG_PATH);
+    if (fstat(fd, &st) == 0)
+    {
+      // 4. Robustness: Check if the file size is larger than MAX_CONFIG_SIZE
+      if (st.st_size >= MAX_CONFIG_SIZE)
+      {
+        fprintf(stderr, "[bcc.fcgi] WARNING: %s size %ld exceeds MAX_CONFIG_SIZE %d. Resetting to [].\n", 
+                CONFIG_PATH, (long)st.st_size, MAX_CONFIG_SIZE);
+      }
+      else
+      {
+        ssize_t len = read(fd, config->json_data[target_buffer], MAX_CONFIG_SIZE - 1);
+        if (len >= 0)
+        {
+          config->json_data[target_buffer][len] = '\0';
+          config->config_len[target_buffer] = (int)len;
+          // 4. Output current file size and MAX_CONFIG_SIZE
+          fprintf(stderr, "[bcc.fcgi] Buffer %d populated from %s (Size: %ld, Max: %d)\n", 
+                  target_buffer, CONFIG_PATH, (long)len, MAX_CONFIG_SIZE);
+          success = 1;
+        }
+      }
+    }
+    close(fd);
   }
-  else
+
+  if (!success)
   {
+    if (fd == -1 && errno == ENOENT)
+        fprintf(stderr, "[bcc.fcgi] No disk file %s. Buffer %d initialized with [].\n", CONFIG_PATH, target_buffer);
+    else if (fd != -1)
+        /* Warning already printed above if size was too large */ ;
+    else
+        fprintf(stderr, "[bcc.fcgi] Failed to open %s: %s. Buffer %d initialized with [].\n", CONFIG_PATH, strerror(errno), target_buffer);
+
     strcpy(config->json_data[target_buffer], "[]");
-    config->config_len[target_buffer] = strlen(config->json_data[target_buffer]);
-    fprintf(stderr, "[bcc.fcgi] No disk file. Buffer %d initialized with default JSON.\n", target_buffer);
+    config->config_len[target_buffer] = 2;
   }
 
   // 4. enable that buffer (atomic swap)
@@ -302,16 +317,12 @@ void read_config_data_from_disk()
 /* Helper: Setup/Repair Shared Memory */
 void init_shared_memory()
 {
-  fprintf(stderr, "[bcc.fcgi] init_shared_memory\n");
-  fflush(stderr);
-  // 1. If already mapped to old version, unmap first
   if (config != NULL)
   {
     munmap(config, shm_size);
     config = NULL;
   }
 
-  // 2. Open/Create the shared memory file
   int shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
   if (shm_fd == -1)
   {
@@ -323,12 +334,10 @@ void init_shared_memory()
   config = mmap(0, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
   close(shm_fd);
 
-  // 3. Logic: Is it brand new or a version mismatch?
-  if (config->layout_version == 0)
+  // Use atomic CAS to ensure only one process performs the initial data loading
+  if (__sync_val_compare_and_swap(&config->layout_version, 0, LAYOUT_VERSION) == 0)
   {
-    // Fresh initialization
-    config->layout_version = LAYOUT_VERSION;
-    config->active_buffer = -1; // -1 means no buffer is active yet
+    config->active_buffer = -1; 
     config->read_in_progress = 0;
     config->update_count = 0;
     config->task_count = 0;
@@ -343,15 +352,16 @@ void init_shared_memory()
   }
   else if (config->layout_version != LAYOUT_VERSION)
   {
-    // Version mismatch detected
     fprintf(stderr, "[bcc.fcgi] Version mismatch (RAM:%d vs Bin:%d). Wiping SHM...\n", config->layout_version, LAYOUT_VERSION);
     shm_unlink(SHM_NAME);
-    init_shared_memory();       // Recurse to create the fresh segment
+    init_shared_memory();
   }
   else
   {
-    fprintf(stderr, "[bcc.fcgi] SHM available\n");
+    // The shared memory was just applied (attached to existing segment)
+    fprintf(stderr, "[bcc.fcgi] Attached to existing SHM v%d.\n", config->layout_version);
   }
+  fflush(stderr);
 }
 
 
@@ -360,7 +370,6 @@ void init_shared_memory()
 
 int bcc_task(const char *config_json, const char *task_json)
 {
-  /* Process configuration and task JSON here */
   co config_co;
   co task_co;
   co all_co = coNewVector(CO_NONE);
@@ -402,7 +411,7 @@ int bcc_task(const char *config_json, const char *task_json)
       return coDelete(all_co), coDelete(config_co), coDelete(task_co), 0;
 
   out_co = bc_ExecuteVector(all_co);
-  coWriteJSON(out_co, /* compact */ 1, 1, stdout);      // isUTF8 is 0, then output char codes >=128 via \u 
+  coWriteJSON(out_co, /* compact */ 1, 1, stdout);
 
   return coDelete(out_co), coDelete(all_co), coDelete(config_co), coDelete(task_co), 1;
 }
@@ -413,21 +422,20 @@ int bcc_task(const char *config_json, const char *task_json)
 
 int main(void)
 {
-  int is_fcgi_init = 0;
+  int is_init = 0;
 
   while (FCGI_Accept() >= 0)
   {
-    if ( is_fcgi_init == 0 )
+    if (!is_init)
     {
       init_shared_memory();
-      is_fcgi_init = 1;
+      is_init = 1;
     }
-    
+
     local_call_count++;
     fprintf(stderr, "[bcc.fcgi] called, local_call_count = %d\n", local_call_count);
     fflush(stderr);
 
-    // Self-Healing Check
     if (config->layout_version != LAYOUT_VERSION)
     {
       fprintf(stderr, "[bcc.fcgi] PID %d detected updated SHM layout. Re-mapping...\n", getpid());
@@ -441,7 +449,6 @@ int main(void)
     parse_query();
     mode = get_query_val("mode");
 
-    // --- 1. MODE: CONFIG UPDATE (Writer) ---
     if (mode && strcmp(mode, "update") == 0 && method && strcmp(method, "POST") == 0)
     {
       int len = atoi(getenv("CONTENT_LENGTH") ? getenv("CONTENT_LENGTH") : "0");
@@ -451,17 +458,13 @@ int main(void)
         fread(upload_buffer, 1, len, stdin);
         upload_buffer[len] = '\0';
 
-        // Sync to disk
         FILE *f = fopen(CONFIG_PATH, "w");
         if (f)
         {
           fwrite(upload_buffer, 1, len, f);
           fclose(f);
-          
-          // Trigger double-buffered swap
           read_config_data_from_disk();
           __sync_fetch_and_add(&config->update_count, 1);
-          
           fprintf(stderr, "[bcc.fcgi] Update to %s successful, content-length=%d\n", CONFIG_PATH, len);
         }
         else
@@ -477,16 +480,9 @@ int main(void)
       fflush(stdout);
     }
 
-
-    // --- 2. MODE: TASK EXECUTION (Reader) ---
     else if (mode && strcmp(mode, "task") == 0 && method && strcmp(method, "POST") == 0)
     {
-      // the task process should check if any active buffer is available, if not then it should also call "read_config_data_from_disk"
-      if (config->active_buffer < 0)
-      {
-        read_config_data_from_disk();
-      }
-      
+      if (config->active_buffer < 0) read_config_data_from_disk();
       __sync_fetch_and_add(&config->task_count, 1);
 
       int len = atoi(getenv("CONTENT_LENGTH") ? getenv("CONTENT_LENGTH") : "0");
@@ -495,17 +491,12 @@ int main(void)
       {
         size_t read_len = fread(task_data, 1, len, stdin);
         task_data[read_len] = '\0';
-
         fprintf(stderr, "[bcc.fcgi] Task data read, content-length=%d\n", len);
         fflush(stderr);
-
         printf("Content-type: application/json\r\n\r\n");
         int active = config->active_buffer;
-        if (active >= 0)
-          bcc_task(config->json_data[active], task_data);
-        else
-          printf("[]"); // Fallback
-          
+        if (active >= 0) bcc_task(config->json_data[active], task_data);
+        else printf("[]");
         fflush(stdout);
         free(task_data);
       }
@@ -516,14 +507,9 @@ int main(void)
       }
     }
     
-    // --- 3. DASHBOARD (Observer) ---
     else
     {
-      if (config->active_buffer < 0)
-      {
-        read_config_data_from_disk();
-      }
-      
+      if (config->active_buffer < 0) read_config_data_from_disk();
       int active = config->active_buffer;
       printf("Content-type: text/html\r\n\r\n");
       printf("<html><head><style>"
@@ -535,9 +521,7 @@ int main(void)
              "pre{background:#2d2d2d; color:#61dafb; padding:15px; border-radius:6px; overflow:auto;}"
              ".status-tag{background:#e1f5fe; color:#01579b; padding:4px 8px; border-radius:4px; font-size:0.8em;}"
              "</style></head><body><div class='container'>");
-
-      printf("<h1>FastCGI BCC Node Monitor <span class='status-tag'>Active</span></h1>");
-
+      printf("<h1>FastCGI Node Monitor <span class='status-tag'>Active</span></h1>");
       printf("<table>"
              "<tr><th>Metric Group</th><th>Field</th><th>Value</th></tr>"
              "<tr><td><b>Version Control</b></td><td>Layout Version</td><td><code>%d</code></td></tr>"
@@ -551,14 +535,11 @@ int main(void)
              "<tr><td></td><td>Config Length</td><td>%d bytes</td></tr>"
              "</table>",
              config->layout_version, getpid(), local_call_count, get_heap_usage(), config->update_count, config->task_count, config->disk_read_count, active, (active >= 0) ? config->config_len[active] : 0);
-
       printf("<h3>Global RAM Configuration (Buffer %d):</h3><pre>%s</pre>", active, (active >= 0) ? config->json_data[active] : "N/A");
       printf("</div></body></html>");
       fflush(stdout);
     }
-    
     free_query();
   }
-
   return 0;
 }
