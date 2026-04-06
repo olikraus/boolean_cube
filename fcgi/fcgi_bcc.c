@@ -32,7 +32,7 @@
 
 
 /*=================================================================*/
-// #define VERBOSE
+//#define VERBOSE
 
 
 /*=================================================================*/
@@ -154,7 +154,21 @@ void free_query()
 int parse_query()
 {
   char *query_env = getenv("QUERY_STRING");
-  if (!query_env || strlen(query_env) == 0)
+  if ( query_env == NULL )
+  {
+#ifdef VERBOSE
+    fprintf(stderr, "[bcc.fcgi] Query string is NULL \n");
+    fflush(stderr);
+#endif /* VERBOSE */
+    return 0;
+  }
+
+#ifdef VERBOSE
+    fprintf(stderr, "[bcc.fcgi] Query string='%s', strlen=%d\n", query_env, (int)strlen(query_env));
+    fflush(stderr);
+#endif /* VERBOSE */
+  
+  if (strlen(query_env) == 0)
   {
     return 0;
   }
@@ -205,8 +219,9 @@ const char *get_query_val(const char *key)
 {
   for (int i = 0; i < URL_QUERY_PAIR_MAX; i++)
   {
-    if (query_pairs[i].key && strcmp(query_pairs[i].key, key) == 0)
-      return query_pairs[i].val;
+    if ( query_pairs[i].key != NULL )
+      if (strcmp(query_pairs[i].key, key) == 0)
+        return query_pairs[i].val;
   }
   return NULL;
 }
@@ -438,10 +453,21 @@ int main(void)
     }
 
     char *method = getenv("REQUEST_METHOD");
-    const char *mode;
+    
+#ifdef VERBOSE
+    fprintf(stderr, "[bcc.fcgi] REQUEST_METHOD=%s\n", method);
+    fflush(stderr);
+#endif /* VERBOSE */
+    
+    const char *mode;    
     init_query();
     parse_query();
     mode = get_query_val("mode");
+
+#ifdef VERBOSE
+    fprintf(stderr, "[bcc.fcgi] Query: Mode=%s\n", mode == NULL ? "NULL" : mode);
+    fflush(stderr);
+#endif /* VERBOSE */
 
     // --- 1. MODE: CONFIG UPDATE (Writer) ---
     if (mode && strcmp(mode, "update") == 0 && method && strcmp(method, "POST") == 0)
@@ -451,6 +477,10 @@ int main(void)
       {
         blocked = 1;
         __sync_fetch_and_add(&config->update_wait_count, 1);
+#ifdef VERBOSE
+        fprintf(stderr, "[bcc.fcgi] Write lock detected\n");
+        fflush(stderr);
+#endif /* VERBOSE */
         pthread_rwlock_wrlock(&config->lock);
       }
 
@@ -521,6 +551,10 @@ int main(void)
     // --- 3. DASHBOARD (Observer) ---
     else
     {
+#ifdef VERBOSE
+      fprintf(stderr, "[bcc.fcgi] Dashboard\n");
+      fflush(stderr);
+#endif /* VERBOSE */
       pthread_rwlock_rdlock(&config->lock);
       printf("Content-type: text/html\r\n\r\n");
       printf("<html><head><style>"

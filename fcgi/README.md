@@ -19,6 +19,11 @@ Also execute a `make clean` to ensure that all files are recompiled.
 ```
 sudo cp bcc.fcgi /var/www/html/.
 ```
+or
+```
+sudo make ubuntu-install
+```
+
 
 # Cleanup
 
@@ -30,5 +35,8 @@ Clear the shared memory segment to reset the stuck lock:
 ```
 sudo rm /dev/shm/fastcgi_config_ram
 ```
-
+Restart Apache2
+```
+sudo systemctl restart apache2
+```
 
