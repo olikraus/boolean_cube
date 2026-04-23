@@ -440,6 +440,7 @@ void bcp_SetBCLAllDCToZero(bcp p, bcl l, bcl extra_mask)
 {
   int i, j;
   bc c;
+  uint16_t *ptr;
   //bc illegal_cube = bcp_GetBCLCube(p, p->global_cube_list, 0);
   
   //__m128i z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));
@@ -493,6 +494,18 @@ void bcp_SetBCLAllDCToZero(bcp p, bcl l, bcl extra_mask)
       _mm_storeu_si128(c+j, _mm_and_si128(mask, _mm_loadu_si128(c+j)) );
      }
   } 
+
+  /* Keep padding variables in a canonical state: active vars are [0..var_cnt-1], the rest stay DC. */
+  for( i = 0; i < l->cnt; i++ )
+  {
+    c = bcp_GetBCLCube(p, l, i);
+    ptr = (uint16_t *)c;
+    for( j = p->var_cnt; j < p->blk_cnt * p->vars_per_blk_cnt; j++ )
+    {
+      ptr[j/8] |= 3 << ((j&7)*2);
+    }
+  }
+
   //bcp_ShowBCL(p, l);
 }
 
