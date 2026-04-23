@@ -1,0 +1,11 @@
+bcc/bcc.exe
+bcc/coverage.info
+bcc/main.gcda
+bcc/main.gcno
+bcc/main.o
+bcc/out/
+*.gcda
+*.gcno
+*.o
+*.png
+*.html
