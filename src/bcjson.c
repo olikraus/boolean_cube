@@ -206,7 +206,7 @@ co bc_ExecuteVector(cco in)
       }
 
       o = coMapGet(cmdmap, "xnot");
-      if (coIsStr(o) && p != NULL )
+      if (coIsStr(o))
       {
         if ( p == NULL ) { p = bcp_New(0); assert( p != NULL ); }
         if ( strlen(coStrGet(o)) > 0 )

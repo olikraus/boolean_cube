@@ -39,6 +39,12 @@ bcl bcp_NewBCLByBCL(bcp p, bcl l)
   bcl n = bcp_NewBCL(p);
   if ( n != NULL )
   {
+    if ( l->cnt == 0 )
+    {
+      n->cnt = 0;
+      n->max = 0;
+      return n;
+    }
     n->list = (__m128i *)malloc(l->cnt*p->bytes_per_cube_cnt);
     if ( n->list != NULL )
     {
@@ -151,7 +157,7 @@ int bcp_ExtendBCL(bcp p, bcl l)
 #ifndef bcp_GetBCLCube
 bc bcp_GetBCLCube(bcp p, bcl l, int pos)
 {
-  assert( pos < l->cnt);
+  assert( pos >= 0 && pos < l->cnt);
   return (bc)(((uint8_t *)(l->list)) + pos * p->bytes_per_cube_cnt);
 }
 #endif
@@ -174,8 +180,8 @@ void bcp_Show2BCL(bcp p, bcl l1, bcl l2)
     list_cnt = l2->cnt;
   for( i = 0; i < list_cnt; i++ )
   {
-    printf("%04d %02x %s", i, l1->flags[i], i<l1->cnt?bcp_GetStringFromCube(p, bcp_GetBCLCube(p, l1, i)):"" );
-    printf(" %02x %s ", l2->flags[i], i<l2->cnt?bcp_GetStringFromCube(p, bcp_GetBCLCube(p, l2, i)):"" );
+    printf("%04d %02x %s", i, i<l1->cnt?l1->flags[i]:0, i<l1->cnt?bcp_GetStringFromCube(p, bcp_GetBCLCube(p, l1, i)):"" );
+    printf(" %02x %s ", i<l2->cnt?l2->flags[i]:0, i<l2->cnt?bcp_GetStringFromCube(p, bcp_GetBCLCube(p, l2, i)):"" );
     if ( i < l1->cnt && i < l2->cnt )
     {
       c1 = bcp_GetBCLCube(p, l1, i);
