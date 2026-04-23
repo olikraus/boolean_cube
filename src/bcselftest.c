@@ -873,7 +873,9 @@ void generated_test_cases(void)
   bcp_DeleteBCL(p, a);
 
   a = bcp_NewBCLByString(p, "1-\n-1\n");
+  bcp_DeleteBCL(p, p->exclude_group_list);
   p->exclude_group_list = grp_list;
+  //bcp_CopyBCL(p, p->exclude_group_list, grp_list);
   assert(bcp_DoBCLXGroup(p, a) != 0);
   generated_expect_equal_cubes(p, "bcp_DoBCLXGroup", a, "10\n01\n");
   p->exclude_group_list = NULL;
