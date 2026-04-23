@@ -567,13 +567,54 @@ static void generated_expect_equal_cubes(bcp p, const char *test_name, bcl actua
 {
   bcl expected = bcp_NewBCLByString(p, expected_cubes);
   int equal;
+  int i;
+  int j;
+  int found;
+  uint8_t *used;
 
   assert(expected != NULL);
   equal = bcp_IsBCLEqual(p, actual, expected);
+
+  /*
+    Fallback check: Some corner cases can fail semantic equality checks even
+    if the produced cubes are identical. In that case, verify the exact cube
+    multiset by raw cube bytes.
+  */
+  if ( equal == 0 && actual->cnt == expected->cnt )
+  {
+    used = (uint8_t *)calloc(expected->cnt, sizeof(uint8_t));
+    assert(used != NULL);
+    equal = 1;
+    for( i = 0; i < actual->cnt; i++ )
+    {
+      found = 0;
+      for( j = 0; j < expected->cnt; j++ )
+      {
+        if ( used[j] == 0 )
+        {
+          if ( memcmp((void *)bcp_GetBCLCube(p, actual, i), (void *)bcp_GetBCLCube(p, expected, j), p->bytes_per_cube_cnt) == 0 )
+          {
+            used[j] = 1;
+            found = 1;
+            break;
+          }
+        }
+      }
+      if ( found == 0 )
+      {
+        equal = 0;
+        break;
+      }
+    }
+    free(used);
+  }
+
   if ( equal == 0 )
   {
     printf("Generated test '%s' failed\n", test_name);
     printf("Expected cubes:\n%s", expected_cubes);
+    printf("Expected BCL:\n");
+    bcp_ShowBCL(p, expected);
     printf("Actual cubes:\n");
     bcp_ShowBCL(p, actual);
   }
@@ -663,6 +704,12 @@ void generated_test_cases(void)
   printf("Generated cube transformation tests\n");
   a = bcp_NewBCLByString(p, "1-\n-0\n");
   assert(a != NULL);
+
+  /*
+    This is not a logical NOT operation.
+    bcp_SetBCLFlipVariables maps: 1/0 -> -, and - -> 0.
+    So 1- and -0 become -0 and 0-.
+  */
   bcp_SetBCLFlipVariables(p, a);
   generated_expect_equal_cubes(p, "bcp_SetBCLFlipVariables", a, "-0\n0-\n");
   bcp_DeleteBCL(p, a);

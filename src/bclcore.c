@@ -379,6 +379,10 @@ int *bcp_GetBCLVarCntList(bcp p, bcl l)
     01, 10 --> 11
     11 --> 01
 
+  used by:
+    - bcjson.c: command "flip" in bc_ExecuteVector()
+    - bcselftest.c: generated_test_cases() coverage test
+
 */
 void bcp_SetBCLFlipVariables(bcp p, bcl l)
 {
