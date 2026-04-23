@@ -115,6 +115,8 @@ void bcp_ClearBCL(bcp p, bcl l)
 
 void bcp_DeleteBCL(bcp p, bcl l)
 {
+  if ( l == NULL )
+    return;
   if ( l->list != NULL )
     free(l->list);
   if ( l->flags != NULL )

@@ -718,15 +718,36 @@ void generated_test_cases(void)
 
   b = bcp_NewBCLByString(p, "110\n111\n");
   assert(b != NULL);
+  /* bcp_DoBCLOneVariableCofactor(p, b, 0, 2):
+     p = problem structure
+     b = boolean cube list to calculate cofactor of
+     0 = variable position (var_pos)
+     2 = value (1=zero, 2=one) */
   bcp_DoBCLOneVariableCofactor(p, b, 0, 2);
-  generated_expect_equal_cubes(p, "bcp_DoBCLOneVariableCofactor", b, "-1-\n");
+  generated_expect_equal_cubes(p, "bcp_DoBCLOneVariableCofactor", b, "11-\n");
   bcp_DeleteBCL(p, b);
 
   b = bcp_NewBCLByString(p, "110\n111\n");
   assert(b != NULL);
+  /* bcp_DoBCLOneVariableCofactor(p, b, 0, 1):
+     p = problem structure
+     b = boolean cube list to calculate cofactor of
+     0 = variable position (var_pos)
+     1 = value (1=zero, 2=one) - cofactor with variable = 0 */
+  bcp_DoBCLOneVariableCofactor(p, b, 0, 1);
+  generated_expect_equal_cubes(p, "bcp_DoBCLOneVariableCofactor value=1", b, "-1-\n");
+  bcp_DeleteBCL(p, b);
+
+  b = bcp_NewBCLByString(p, "110\n111\n");
+  assert(b != NULL);
+  /* bcp_NewBCLCofacterByVariable(p, b, 1, 2):
+     p = problem structure
+     b = boolean cube list to calculate cofactor of
+     1 = variable position (var_pos)
+     2 = value (1=zero, 2=one) - note: creates a new BCL, does not modify original */
   c = bcp_NewBCLCofacterByVariable(p, b, 1, 2);
   assert(c != NULL);
-  generated_expect_equal_cubes(p, "bcp_NewBCLCofacterByVariable", c, "1--\n");
+  generated_expect_equal_cubes(p, "bcp_NewBCLCofacterByVariable", c, "11-\n");
   generated_expect_equal_cubes(p, "bcp_NewBCLCofacterByVariable original", b, "110\n111\n");
 
   bcp_StartCubeStackFrame(p);
