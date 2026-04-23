@@ -372,6 +372,7 @@ int main(int argc, char **argv)
       internalTest(7);
       expressionTest();
       excludeTest();
+      generated_test_cases();
       argv++;
     }
     else if ( strcmp(*argv, "-speed") == 0 )

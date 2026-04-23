@@ -9,3 +9,8 @@ bcc/out/
 *.o
 *.png
 *.html
+src/out/gcov.css
+src/bcc.exe
+json/F907_1.json
+json/F907.json
+.gitignore

@@ -29,8 +29,13 @@
   
   Definitions
   
-  - Variable: A boolean variable which is one (1), zero (0), don't care (-) or illegal (x), A variable occupies 2 bit.
-  - Variable encoding: A variable is encoded with two bits: one=10, zero=01, don't care=11, illegal=00
+  - Variable: A boolean variable which is one (1), zero (0), don't care (-) or illegal (x). A variable occupies 2 bit.
+  - Variable encoding: A variable is encoded with two bits and an internal numeric value.
+      internal value 0: char x, illegal
+      internal value 1: char 0, variable value is zero
+      internal value 2: char 1, variable value is one
+      internal value 3: char -, don't care, variable not used
+    Bit encoding: one=10, zero=01, don't care=11, illegal=00
   - Blk (block): A physical unit in the uC which can group multiple variables, currently this is a __m128i object
   - Boolean Cube (BC): A vector of multiple blocks, which can hold all variables of a boolean cube problem. Usually this is interpreted as a "product" ("and" operation) of the boolean variables
   - Boolean Cube Problem (BCP): A master structure with a given number of boolean variables ("var_cnt") 
@@ -351,6 +356,7 @@ void speedTest(int var_cnt);
 void minimizeTest(int cnt);
 void expressionTest(void);
 void excludeTest(void);
+void generated_test_cases(void);
 
 
 

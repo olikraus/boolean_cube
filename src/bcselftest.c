@@ -16,6 +16,8 @@
 #include "bc.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 
@@ -558,4 +560,285 @@ void excludeTest()
   exclude_test_sub("-b", "a&b&c", "a&-b&-c|-a&-b&c", 1);         // the original term needs to be updated with the negated other members
 
   exclude_test_sub("x", "a0&a1&a2&a3&a4&a5&a6&a7&a8&a9&b0&b1&b2&b3&b4&b5&b6&b7&b8&b9&c0&c1&c2&c3&c4&c5&c6&c7&c8&c9&d0&d1&d2&d3&d4&d5&d6&d7&d8&d9  &x", "-a0&-a1&-a2&-a3&-a4&-a5&-a6&-a7&-a8&-a9&-b0&-b1&-b2&-b3&-b4&-b5&-b6&-b7&-b8&-b9&-c0&-c1&-c2&-c3&-c4&-c5&-c6&-c7&-c8&-c9&-d0&-d1&-d2&-d3&-d4&-d5&-d6&-d7&-d8&-d9&x", 1);         // the original term needs to be updated with the negated other 
+}
+
+
+static void generated_expect_equal_cubes(bcp p, const char *test_name, bcl actual, const char *expected_cubes)
+{
+  bcl expected = bcp_NewBCLByString(p, expected_cubes);
+  int equal;
+
+  assert(expected != NULL);
+  equal = bcp_IsBCLEqual(p, actual, expected);
+  if ( equal == 0 )
+  {
+    printf("Generated test '%s' failed\n", test_name);
+    printf("Expected cubes:\n%s", expected_cubes);
+    printf("Actual cubes:\n");
+    bcp_ShowBCL(p, actual);
+  }
+  assert(equal != 0);
+  bcp_DeleteBCL(p, expected);
+}
+
+
+static void generated_expect_cube_string(bcp p, const char *test_name, bc cube, const char *expected_cube)
+{
+  const char *actual_cube = bcp_GetStringFromCube(p, cube);
+  if ( strcmp(actual_cube, expected_cube) != 0 )
+  {
+    printf("Generated test '%s' failed\n", test_name);
+    printf("Expected cube '%s', got '%s'\n", expected_cube, actual_cube);
+  }
+  assert(strcmp(actual_cube, expected_cube) == 0);
+}
+
+
+void generated_test_cases(void)
+{
+  bcp p;
+  bcl a;
+  bcl b;
+  bcl c;
+  bcl d;
+  bcl off;
+  bcl grp_list;
+  bc cube;
+  int *vcl;
+  int pos;
+
+  printf("Generated test cases\n");
+
+  p = bcp_New(2);
+  assert(p != NULL);
+  printf("Generated core BCL tests\n");
+  a = bcp_NewBCLWithCube(p, 3);
+  assert(a != NULL);
+  generated_expect_equal_cubes(p, "bcp_NewBCLWithCube", a, "--\n");
+
+  b = bcp_NewBCLByBCL(p, a);
+  assert(b != NULL);
+  generated_expect_equal_cubes(p, "bcp_NewBCLByBCL", b, "--\n");
+
+  c = bcp_NewBCL(p);
+  assert(c != NULL);
+  assert(bcp_CopyBCL(p, c, b) != 0);
+  generated_expect_equal_cubes(p, "bcp_CopyBCL", c, "--\n");
+  bcp_ClearBCL(p, c);
+  assert(c->cnt == 0);
+
+  /* Build three cubes: "10" has two assigned literals, "--" has none, "01" has two assigned literals. */
+  pos = bcp_AddBCLCube(p, c);
+  assert(pos == 0);
+  bcp_SetCubeByString(p, bcp_GetBCLCube(p, c, 0), "10");
+  pos = bcp_AddBCLCubeByCube(p, c, bcp_GetGlobalCube(p, 3));
+  assert(pos == 1);
+  assert(bcp_AddBCLCubesByString(p, c, "01\n") != 0);
+  assert(c->cnt == 3);
+
+  /* bcp_GetBCLVarCntList counts non-DC variables (both '0' and '1' literals). */
+  /* So "10" -> 2, "--" -> 0, and "01" -> 2. */
+  vcl = bcp_GetBCLVarCntList(p, c);
+  assert(vcl != NULL);
+  assert(vcl[0] == 2);
+  assert(vcl[1] == 0);
+  assert(vcl[2] == 2);
+  free(vcl);
+
+  assert(bcp_AddBCLCubesByBCL(p, c, a) != 0);
+  assert(c->cnt == 4);
+  c->flags[0] = 1;
+  assert(bcp_IsPurgeUsefull(p, c) != 0);
+  bcp_PurgeBCL(p, c);
+  assert(c->cnt == 3);
+  generated_expect_equal_cubes(p, "bcp_PurgeBCL", c, "--\n01\n");
+
+  bcp_DeleteBCL(p, c);
+  bcp_DeleteBCL(p, b);
+  bcp_DeleteBCL(p, a);
+  bcp_Delete(p);
+
+  p = bcp_New(2);
+  assert(p != NULL);
+  printf("Generated cube transformation tests\n");
+  a = bcp_NewBCLByString(p, "1-\n-0\n");
+  assert(a != NULL);
+  bcp_SetBCLFlipVariables(p, a);
+  generated_expect_equal_cubes(p, "bcp_SetBCLFlipVariables", a, "-0\n0-\n");
+  bcp_DeleteBCL(p, a);
+
+  a = bcp_NewBCLByString(p, "1-\n0-\n");
+  assert(a != NULL);
+  bcp_SetBCLAllDCToZero(p, a, NULL);
+  generated_expect_equal_cubes(p, "bcp_SetBCLAllDCToZero", a, "10\n00\n");
+  bcp_DeleteBCL(p, a);
+
+  a = bcp_NewBCLByString(p, "1-\n-1\n");
+  assert(a != NULL);
+  bcp_StartCubeStackFrame(p);
+  cube = bcp_GetTempCube(p);
+  assert(cube != NULL);
+  bcp_AndElementsBCL(p, a, cube);
+  generated_expect_cube_string(p, "bcp_AndElementsBCL", cube, "11");
+  bcp_EndCubeStackFrame(p);
+  bcp_AndBCL(p, a);
+  generated_expect_equal_cubes(p, "bcp_AndBCL", a, "11\n");
+  bcp_DeleteBCL(p, a);
+  bcp_Delete(p);
+
+  p = bcp_New(3);
+  assert(p != NULL);
+  printf("Generated cofactor and variable analysis tests\n");
+  a = bcp_NewBCLByString(p, "1--\n0-1\n");
+  assert(a != NULL);
+  bcp_CalcBCLBinateSplitVariableTable(p, a);
+  assert(bcp_GetBCLMaxBinateSplitVariableSimple(p, a) == 0);
+  assert(bcp_GetBCLMaxBinateSplitVariable(p, a) == 0);
+  assert(bcp_IsBCLVariableDC(p, a, 1) != 0);
+  assert(bcp_IsBCLVariableUnate(p, a, 2, 2) != 0);
+  assert(bcp_IsBCLVariableUnate(p, a, 0, 2) == 0);
+
+  b = bcp_NewBCLByString(p, "110\n111\n");
+  assert(b != NULL);
+  bcp_DoBCLOneVariableCofactor(p, b, 0, 2);
+  generated_expect_equal_cubes(p, "bcp_DoBCLOneVariableCofactor", b, "-1-\n");
+  bcp_DeleteBCL(p, b);
+
+  b = bcp_NewBCLByString(p, "110\n111\n");
+  assert(b != NULL);
+  c = bcp_NewBCLCofacterByVariable(p, b, 1, 2);
+  assert(c != NULL);
+  generated_expect_equal_cubes(p, "bcp_NewBCLCofacterByVariable", c, "1--\n");
+  generated_expect_equal_cubes(p, "bcp_NewBCLCofacterByVariable original", b, "110\n111\n");
+
+  bcp_StartCubeStackFrame(p);
+  cube = bcp_GetTempCube(p);
+  assert(cube != NULL);
+  bcp_SetCubeByString(p, cube, "1--");
+  d = bcp_NewBCLByString(p, "110\n111\n011\n");
+  assert(d != NULL);
+  bcp_DoBCLCofactorByCube(p, d, cube, -1);
+  generated_expect_equal_cubes(p, "bcp_DoBCLCofactorByCube", d, "-1-\n011\n");
+  bcp_DeleteBCL(p, d);
+
+  d = bcp_NewBCLByString(p, "110\n111\n011\n");
+  assert(d != NULL);
+  off = bcp_NewBCLCofactorByCube(p, d, cube, -1);
+  assert(off != NULL);
+  generated_expect_equal_cubes(p, "bcp_NewBCLCofactorByCube", off, "-1-\n011\n");
+  bcp_DeleteBCL(p, off);
+  bcp_EndCubeStackFrame(p);
+
+  bcp_DeleteBCL(p, d);
+  bcp_DeleteBCL(p, c);
+  bcp_DeleteBCL(p, b);
+  bcp_DeleteBCL(p, a);
+  bcp_Delete(p);
+
+  p = bcp_New(2);
+  assert(p != NULL);
+  printf("Generated containment tests\n");
+  a = bcp_NewBCLByString(p, "1-\n11\n");
+  assert(a != NULL);
+  assert(bcp_IsBCLCubeSingleCovered(p, a, bcp_GetBCLCube(p, a, 1)) != 0);
+  assert(bcp_IsBCLCubeCovered(p, a, bcp_GetBCLCube(p, a, 1)) != 0);
+  assert(bcp_IsBCLCubeRedundant(p, a, 1) != 0);
+  bcp_DoBCLSingleCubeContainment(p, a);
+  generated_expect_equal_cubes(p, "bcp_DoBCLSingleCubeContainment", a, "1-\n");
+  bcp_DeleteBCL(p, a);
+
+  a = bcp_NewBCLByString(p, "1-\n11\n10\n");
+  assert(a != NULL);
+  bcp_DoBCLMultiCubeContainment(p, a);
+  generated_expect_equal_cubes(p, "bcp_DoBCLMultiCubeContainment", a, "11\n10\n");
+  bcp_DeleteBCL(p, a);
+  bcp_Delete(p);
+
+  p = bcp_New(2);
+  assert(p != NULL);
+  printf("Generated set operation tests\n");
+  a = bcp_NewBCLByString(p, "1-\n-1\n");
+  assert(a != NULL);
+  b = bcp_NewBCLComplement(p, a);
+  assert(b != NULL);
+  generated_expect_equal_cubes(p, "bcp_NewBCLComplement", b, "00\n");
+  bcp_DeleteBCL(p, b);
+
+  assert(bcp_ComplementBCL(p, a) != 0);
+  generated_expect_equal_cubes(p, "bcp_ComplementBCL", a, "00\n");
+  bcp_DeleteBCL(p, a);
+
+  a = bcp_NewBCLByString(p, "1-\n");
+  b = bcp_NewBCLByString(p, "11\n");
+  assert(a != NULL);
+  assert(b != NULL);
+  assert(bcp_IsBCLSubsetWithCofactor(p, a, b) != 0);
+  assert(bcp_IsBCLSubsetWithSubtract(p, a, b) != 0);
+  assert(bcp_IsBCLSubset(p, a, b) != 0);
+  assert(bcp_IsBCLSubset(p, b, a) == 0);
+  bcp_DeleteBCL(p, b);
+  bcp_DeleteBCL(p, a);
+
+  a = bcp_NewBCLByString(p, "1-\n-1\n");
+  b = bcp_NewBCLByString(p, "1-\n-0\n");
+  assert(a != NULL);
+  assert(b != NULL);
+  assert(bcp_IntersectionBCL(p, a, b) != 0);
+  generated_expect_equal_cubes(p, "bcp_IntersectionBCL", a, "1-\n");
+  bcp_DeleteBCL(p, b);
+  bcp_DeleteBCL(p, a);
+
+  a = bcp_NewBCLByString(p, "11\n10\n");
+  assert(a != NULL);
+  bcp_DoBCLSimpleExpand(p, a);
+  generated_expect_equal_cubes(p, "bcp_DoBCLSimpleExpand", a, "1-\n");
+  bcp_DeleteBCL(p, a);
+
+  a = bcp_NewBCLByString(p, "11\n10\n");
+  off = bcp_NewBCLByString(p, "0-\n");
+  assert(a != NULL);
+  assert(off != NULL);
+  bcp_DoBCLExpandWithOffSet(p, a, off);
+  generated_expect_equal_cubes(p, "bcp_DoBCLExpandWithOffSet", a, "1-\n");
+  bcp_DeleteBCL(p, off);
+  bcp_DeleteBCL(p, a);
+
+  a = bcp_NewBCLByString(p, "11\n10\n");
+  assert(a != NULL);
+  bcp_DoBCLExpandWithCofactor(p, a);
+  generated_expect_equal_cubes(p, "bcp_DoBCLExpandWithCofactor", a, "1-\n");
+  bcp_DeleteBCL(p, a);
+
+  a = bcp_NewBCLByString(p, "11\n10\n");
+  assert(a != NULL);
+  bcp_MinimizeBCLWithOnSet(p, a);
+  generated_expect_equal_cubes(p, "bcp_MinimizeBCLWithOnSet", a, "1-\n");
+  bcp_DeleteBCL(p, a);
+
+  a = bcp_NewBCLByString(p, "11\n10\n");
+  assert(a != NULL);
+  bcp_MinimizeBCL(p, a);
+  generated_expect_equal_cubes(p, "bcp_MinimizeBCL", a, "1-\n");
+  bcp_DeleteBCL(p, a);
+  bcp_Delete(p);
+
+  p = bcp_New(2);
+  assert(p != NULL);
+  printf("Generated exclude-group tests\n");
+  a = bcp_NewBCLByString(p, "1-\n-1\n");
+  grp_list = bcp_NewBCLByString(p, "11\n");
+  assert(a != NULL);
+  assert(grp_list != NULL);
+  assert(bcp_DoBCLExcludeGroupList(p, a, grp_list) != 0);
+  generated_expect_equal_cubes(p, "bcp_DoBCLExcludeGroupList", a, "10\n01\n");
+  bcp_DeleteBCL(p, a);
+
+  a = bcp_NewBCLByString(p, "1-\n-1\n");
+  p->exclude_group_list = grp_list;
+  assert(bcp_DoBCLXGroup(p, a) != 0);
+  generated_expect_equal_cubes(p, "bcp_DoBCLXGroup", a, "10\n01\n");
+  p->exclude_group_list = NULL;
+  bcp_DeleteBCL(p, grp_list);
+  bcp_DeleteBCL(p, a);
+  bcp_Delete(p);
 }
