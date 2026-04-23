@@ -609,6 +609,7 @@ void generated_test_cases(void)
   bc cube;
   int *vcl;
   int pos;
+  int tautology;
 
   printf("Generated test cases\n");
 
@@ -664,6 +665,14 @@ void generated_test_cases(void)
   p = bcp_New(2);
   assert(p != NULL);
   printf("Generated cube transformation tests\n");
+
+  /* Regression check: "-- | 0-" must be a tautology. */
+  a = bcp_NewBCLByString(p, "--\n0-\n");
+  assert(a != NULL);
+  tautology = bcp_IsBCLTautology(p, a);
+  assert(tautology == 1);
+  bcp_DeleteBCL(p, a);
+
   a = bcp_NewBCLByString(p, "1-\n-0\n");
   assert(a != NULL);
 

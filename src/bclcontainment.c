@@ -106,8 +106,9 @@ void bcp_DoBCLSingleCubeContainment(bcp p, bcl l)
 */
 int bcp_IsBCLCubeCovered(bcp p, bcl l, bc c)
 {
-  bcl n = bcp_NewBCLCofactorByCube(p, l, c, -1);
+  bcl n = bcp_NewBCLCofactorByCube(p, l, c, -1); /* (p) problem context, (l) cover list, (c) cube under test, (-1) exclude no cube */
   int result = bcp_IsBCLTautology(p, n);
+
   bcp_DeleteBCL(p, n);
   return result;
 }

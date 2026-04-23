@@ -391,6 +391,7 @@ void bcp_SetBCLFlipVariables(bcp p, bcl l)
   __m128i r;
   __m128i o = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 2));
   __m128i dc = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 3));
+  uint16_t *ptr;
   
   for( i = 0; i < l->cnt; i++ )
   {
@@ -402,6 +403,13 @@ void bcp_SetBCLFlipVariables(bcp p, bcl l)
       r = _mm_and_si128( r, o);                                    // r = r & 10   this will generate 10 for DC and 00 for "10" and "01" (and also for "00")
       r = _mm_andnot_si128(r, dc);                                // invert mask, so we have 01 for DC and 11 for all other values, the "dc" 2nd arg is just a dummy value for andnot
       _mm_storeu_si128(c+j, r );                // store the result
+    }
+
+    /* Keep padding variables in a canonical state: active vars are [0..var_cnt-1], the rest stay DC. */
+    ptr = (uint16_t *)c;
+    for( j = p->var_cnt; j < p->blk_cnt * p->vars_per_blk_cnt; j++ )
+    {
+      ptr[j/8] |= 3 << ((j&7)*2);
     }
   }
 }
