@@ -4,7 +4,9 @@
 COPATH = ../../c-object/co
 BCPATH = ../src
 
-CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I$(BCPATH) -I.
+# -DCO_FCGI will include FCGI_stdio.h in c-object and bcc sources
+# run 'make clean' if the sources had been created for the commandline version of bcc
+CFLAGS = -g -march=silvermont  -Wall  -DCO_FCGI -I$(COPATH) -I$(BCPATH) -I. -I/usr/include/fastcgi
 
 # CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I.            
 # gcov -b 
@@ -28,24 +30,10 @@ bcc.fcgi: $(OBJ)
 clean:	
 	-rm $(OBJ) bcc.fcgi
 
+ubuntu-install:
+	-mv bcc.fcgi /var/www/html/bcc.fcgi
+        
+ubuntu-post-task:
+	curl -v -H "Content-Type: application/json" -d '[]' "http://localhost/bcc.fcgi?mode=update"
+	curl -v -H "Content-Type: application/json" --data @../json/intersection_xgroups.json "http://localhost/bcc.fcgi?mode=task"
 
-# build bcc with coverage code
-
-coverage-report:
-	lcov --capture --directory . --output-file coverage.info
-	genhtml coverage.info --output-directory out
-	@echo "Coverage report in 'out/' folder."
-
-coverage-exec:
-	./bcc -test
-
-coverage: CFLAGS += -fprofile-arcs -ftest-coverage 
-coverage: LDFLAGS += -fprofile-arcs -ftest-coverage 
-coverage: clean bcc coverage-exec  coverage-report
-
-# memory leak analysis
-
-memory: CFLAGS += -fsanitize=address
-memory: LDFLAGS += -fsanitize=address
-memory: clean bcc
-	./bcc -test
