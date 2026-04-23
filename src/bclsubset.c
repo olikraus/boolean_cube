@@ -76,8 +76,17 @@ int bcp_IsBCLSubsetWithSubtract(bcp p, bcl a, bcl b)
 int bcp_IsBCLEqual(bcp p, bcl a, bcl b)
 {
   int r1, r2;
+
+  printf("bcp_IsBCLEqual: a->cnt=%d b->cnt=%d\n", a->cnt, b->cnt);
+  puts("bcp_IsBCLEqual: A");
+  bcp_ShowBCL(p, a);
+  puts("bcp_IsBCLEqual: B");
+  bcp_ShowBCL(p, b);
+
   r1 = bcp_IsBCLSubset(p, a, b);
   r2 = bcp_IsBCLSubset(p, b, a);
+  printf("bcp_IsBCLEqual: r1=%d r2=%d\n", r1, r2);
+
   if ( r1 != 0 && r2 != 0 )
     return 1;
   return 0;
