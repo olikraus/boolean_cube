@@ -78,6 +78,7 @@ int bcp_IsBCLEqual(bcp p, bcl a, bcl b)
   int r1, r2;
   r1 = bcp_IsBCLSubset(p, a, b);
   r2 = bcp_IsBCLSubset(p, b, a);
+
   if ( r1 != 0 && r2 != 0 )
     return 1;
   return 0;

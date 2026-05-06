@@ -32,7 +32,11 @@ clean:
 # build bcc with coverage code
 
 coverage-report:
-	lcov --capture --directory . --output-file coverage.info
+	lcov --capture \
+		--directory . \
+		--directory $(BCPATH) \
+		--directory $(COPATH) \
+		--output-file coverage.info
 	genhtml coverage.info --output-directory out
 	@echo "Coverage report in 'out/' folder."
 

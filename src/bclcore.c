@@ -39,6 +39,12 @@ bcl bcp_NewBCLByBCL(bcp p, bcl l)
   bcl n = bcp_NewBCL(p);
   if ( n != NULL )
   {
+    if ( l->cnt == 0 )
+    {
+      n->cnt = 0;
+      n->max = 0;
+      return n;
+    }
     n->list = (__m128i *)malloc(l->cnt*p->bytes_per_cube_cnt);
     if ( n->list != NULL )
     {
@@ -115,6 +121,8 @@ void bcp_ClearBCL(bcp p, bcl l)
 
 void bcp_DeleteBCL(bcp p, bcl l)
 {
+  if ( l == NULL )
+    return;
   if ( l->list != NULL )
     free(l->list);
   if ( l->flags != NULL )
@@ -149,7 +157,7 @@ int bcp_ExtendBCL(bcp p, bcl l)
 #ifndef bcp_GetBCLCube
 bc bcp_GetBCLCube(bcp p, bcl l, int pos)
 {
-  assert( pos < l->cnt);
+  assert( pos >= 0 && pos < l->cnt);
   return (bc)(((uint8_t *)(l->list)) + pos * p->bytes_per_cube_cnt);
 }
 #endif
@@ -172,8 +180,8 @@ void bcp_Show2BCL(bcp p, bcl l1, bcl l2)
     list_cnt = l2->cnt;
   for( i = 0; i < list_cnt; i++ )
   {
-    printf("%04d %02x %s", i, l1->flags[i], i<l1->cnt?bcp_GetStringFromCube(p, bcp_GetBCLCube(p, l1, i)):"" );
-    printf(" %02x %s ", l2->flags[i], i<l2->cnt?bcp_GetStringFromCube(p, bcp_GetBCLCube(p, l2, i)):"" );
+    printf("%04d %02x %s", i, i<l1->cnt?l1->flags[i]:0, i<l1->cnt?bcp_GetStringFromCube(p, bcp_GetBCLCube(p, l1, i)):"" );
+    printf(" %02x %s ", i<l2->cnt?l2->flags[i]:0, i<l2->cnt?bcp_GetStringFromCube(p, bcp_GetBCLCube(p, l2, i)):"" );
     if ( i < l1->cnt && i < l2->cnt )
     {
       c1 = bcp_GetBCLCube(p, l1, i);
@@ -379,6 +387,10 @@ int *bcp_GetBCLVarCntList(bcp p, bcl l)
     01, 10 --> 11
     11 --> 01
 
+  used by:
+    - bcjson.c: command "flip" in bc_ExecuteVector()
+    - bcselftest.c: generated_test_cases() coverage test
+
 */
 void bcp_SetBCLFlipVariables(bcp p, bcl l)
 {
@@ -387,6 +399,7 @@ void bcp_SetBCLFlipVariables(bcp p, bcl l)
   __m128i r;
   __m128i o = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 2));
   __m128i dc = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 3));
+  uint16_t *ptr;
   
   for( i = 0; i < l->cnt; i++ )
   {
@@ -398,6 +411,13 @@ void bcp_SetBCLFlipVariables(bcp p, bcl l)
       r = _mm_and_si128( r, o);                                    // r = r & 10   this will generate 10 for DC and 00 for "10" and "01" (and also for "00")
       r = _mm_andnot_si128(r, dc);                                // invert mask, so we have 01 for DC and 11 for all other values, the "dc" 2nd arg is just a dummy value for andnot
       _mm_storeu_si128(c+j, r );                // store the result
+    }
+
+    /* Keep padding variables in a canonical state: active vars are [0..var_cnt-1], the rest stay DC. */
+    ptr = (uint16_t *)c;
+    for( j = p->var_cnt; j < p->blk_cnt * p->vars_per_blk_cnt; j++ )
+    {
+      ptr[j/8] |= 3 << ((j&7)*2);
     }
   }
 }
@@ -428,6 +448,7 @@ void bcp_SetBCLAllDCToZero(bcp p, bcl l, bcl extra_mask)
 {
   int i, j;
   bc c;
+  uint16_t *ptr;
   //bc illegal_cube = bcp_GetBCLCube(p, p->global_cube_list, 0);
   
   //__m128i z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));
@@ -481,6 +502,18 @@ void bcp_SetBCLAllDCToZero(bcp p, bcl l, bcl extra_mask)
       _mm_storeu_si128(c+j, _mm_and_si128(mask, _mm_loadu_si128(c+j)) );
      }
   } 
+
+  /* Keep padding variables in a canonical state: active vars are [0..var_cnt-1], the rest stay DC. */
+  for( i = 0; i < l->cnt; i++ )
+  {
+    c = bcp_GetBCLCube(p, l, i);
+    ptr = (uint16_t *)c;
+    for( j = p->var_cnt; j < p->blk_cnt * p->vars_per_blk_cnt; j++ )
+    {
+      ptr[j/8] |= 3 << ((j&7)*2);
+    }
+  }
+
   //bcp_ShowBCL(p, l);
 }
 

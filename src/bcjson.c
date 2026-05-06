@@ -121,7 +121,7 @@
 
 
 /*
-  takes a JSON input (as co object) and produces a JSON output (again as co object)
+  takes a JSON input (as co vector object) and produces a JSON output (again as co object)
 */
 co bc_ExecuteVector(cco in)
 {
@@ -206,7 +206,7 @@ co bc_ExecuteVector(cco in)
       }
 
       o = coMapGet(cmdmap, "xnot");
-      if (coIsStr(o) && p != NULL )
+      if (coIsStr(o))
       {
         if ( p == NULL ) { p = bcp_New(0); assert( p != NULL ); }
         if ( strlen(coStrGet(o)) > 0 )
@@ -805,3 +805,4 @@ int bc_ExecuteJSONFiles(const char **json_input_filenames, int input_file_cnt, c
   coDelete(in);
   return 1;
 }
+
