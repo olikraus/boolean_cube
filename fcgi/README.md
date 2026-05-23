@@ -8,6 +8,39 @@ The following calls are supported:
  * POST mode=update: Read bcc (config) json and reuse this json for all tasks as prefix
 
 
+# URL Syntax
+
+Base URL (example):
+```
+http://localhost/bcc.fcgi
+```
+
+POST URL for updating the shared config prefix:
+```
+http://localhost/bcc.fcgi?mode=update
+```
+
+POST URL for executing a task (config prefix + task payload):
+```
+http://localhost/bcc.fcgi?mode=task
+```
+
+Example POST call for `mode=update`:
+```
+curl -v -H "Content-Type: application/json" --data @../json/intersection_xgroups.json "http://localhost/bcc.fcgi?mode=update"
+```
+
+Example POST call for `mode=task`:
+```
+curl -v -H "Content-Type: application/json" --data @../json/intersection_plain.json "http://localhost/bcc.fcgi?mode=task"
+```
+
+Notes:
+ - `mode=update` stores the uploaded JSON as shared prefix/config.
+ - `mode=task` executes with the current shared prefix and the uploaded task JSON.
+ - No `mode` (plain GET) shows the status web page.
+
+
 # Implementation
 
 
@@ -34,6 +67,26 @@ sudo chmod a+rw /var/lib/fcgi_bcc
 
 Requires the definition of `CO_FCGI` so that c-object uses the redefined `FILE` and stdio macros.
 Also execute a `make clean` to ensure that all files are recompiled.
+
+
+# VS Code Development Scripts (Windows/MSYS2)
+
+The following PowerShell scripts are intended for VS Code development and testing only.
+They are not part of production deployment on the target web server.
+
+ - `../bcc/run_bcselftest_msys2.ps1`
+	 - Builds the command line `bcc` binary (with selectable `BC_EXT`) and runs `-test` selftests.
+	 - Example:
+```
+pwsh ../bcc/run_bcselftest_msys2.ps1 -Clean -BcExt 2
+```
+
+ - `build_fcgi_msys2.ps1`
+	 - Builds the `bcc.fcgi` executable in this folder (with selectable `BC_EXT`).
+	 - Example:
+```
+pwsh ./build_fcgi_msys2.ps1 -Clean -BcExt 2
+```
 
 
 # Deploy

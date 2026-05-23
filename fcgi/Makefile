@@ -3,10 +3,19 @@
 
 COPATH = ../../c-object/co
 BCPATH = ../src
+BC_EXT ?= 2
 
 # -DCO_FCGI will include FCGI_stdio.h in c-object and bcc sources
 # run 'make clean' if the sources had been created for the commandline version of bcc
-CFLAGS = -g -march=silvermont  -Wall  -DCO_FCGI -I$(COPATH) -I$(BCPATH) -I. -I/usr/include/fastcgi
+CFLAGS = -g -Wall -DCO_FCGI -DBC_EXT=$(BC_EXT) -I$(COPATH) -I$(BCPATH) -I. -I/usr/include/fastcgi
+
+ifeq ($(BC_EXT),1)
+CFLAGS += -msse2 -march=silvermont
+else ifeq ($(BC_EXT),2)
+CFLAGS += -mavx2 -march=haswell
+else ifeq ($(BC_EXT),3)
+CFLAGS += -mavx512f -mavx512bw
+endif
 
 # CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I.            
 # gcov -b 
