@@ -78,6 +78,7 @@
 
 int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp)
 {
+#if BC_EXT == 1
   bc l_var;
   bc grp_var;
   bc c;
@@ -208,6 +209,105 @@ int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp)
 
   bcp_EndCubeStackFrame(p);
   return 1;
+#elif BC_EXT == 2
+  bc l_var;
+  bc grp_var;
+  bc c;
+  int is_any_var_used;
+  int is_any_positive_var_used;
+  int is_any_negative_var_used;
+  int i, j;
+  int grp_var_cnt = 0;
+  bc_vec_t mask;
+
+  bcp_StartCubeStackFrame(p);
+  l_var = bcp_GetTempCube(p);
+  grp_var = bcp_GetTempCube(p);
+
+  if ( l_var == NULL || grp_var == NULL )
+    return bcp_EndCubeStackFrame(p), 0;
+
+  bcp_AndElementsBCL(p, l, l_var);
+  bcp_AndElementsBCL(p, grp, grp_var);
+
+  is_any_var_used = 0;
+  is_any_positive_var_used = 0;
+  is_any_negative_var_used = 0;
+  for( i = 0; i < p->var_cnt; i++ )
+  {
+    if ( bcp_GetCubeVar(p, grp_var, i) != 3 )
+    {
+      grp_var_cnt++;
+      if ( bcp_GetCubeVar(p, l_var, i) != 3 )
+      {
+        is_any_var_used = 1;
+        if ( bcp_GetCubeVar(p, l_var, i) == 1 )
+          is_any_negative_var_used = 1;
+        if ( bcp_GetCubeVar(p, l_var, i) == 2 )
+          is_any_positive_var_used = 1;
+      }
+    }
+  }
+
+  if ( is_any_var_used == 0 )
+  {
+    logprint(2, "bcl_ExcludeBCLVars: No group variable used (%d vars in the group)", grp_var_cnt);
+    return bcp_EndCubeStackFrame(p), 1;
+  }
+  logprint(2, "bcl_ExcludeBCLVars: Some group variables used (%d vars in the group), is_positive=%d, is_negative=%d", grp_var_cnt, is_any_positive_var_used, is_any_negative_var_used);
+
+  if ( is_any_positive_var_used )
+  {
+    for( i = 0; i < p->var_cnt; i++ )
+    {
+      if ( bcp_GetCubeVar(p, grp_var, i) != 3 )
+      {
+        if ( bcp_GetCubeVar(p, l_var, i) != 3 )
+          bcp_SetCubeVar(p, grp_var, i, 3);
+        else
+          bcp_SetCubeVar(p, grp_var, i, 1);
+      }
+    }
+
+    for( j = 0; j < p->blk_cnt; j++ )
+    {
+      mask = _mm256_loadu_si256(grp_var+j);
+      for( i = 0; i < l->cnt; i++ )
+      {
+        c = bcp_GetBCLCube(p,l,i);
+        _mm256_storeu_si256(c+j, _mm256_and_si256(_mm256_loadu_si256(c+j), mask));
+      }
+    }
+  }
+  else if ( is_any_negative_var_used )
+  {
+    for( i = 0; i < p->var_cnt; i++ )
+    {
+      if ( bcp_GetCubeVar(p, grp_var, i) != 3 )
+      {
+        if ( bcp_GetCubeVar(p, l_var, i) != 3 )
+          bcp_SetCubeVar(p, grp_var, i, 3);
+        else
+          bcp_SetCubeVar(p, grp_var, i, 2);
+      }
+    }
+
+    for( j = 0; j < p->blk_cnt; j++ )
+    {
+      mask = _mm256_loadu_si256(grp_var+j);
+      for( i = 0; i < l->cnt; i++ )
+      {
+        c = bcp_GetBCLCube(p,l,i);
+        _mm256_storeu_si256(c+j, _mm256_and_si256(_mm256_loadu_si256(c+j), mask));
+      }
+    }
+  }
+
+  bcp_EndCubeStackFrame(p);
+  return 1;
+#else
+#error "Unsupported BC_EXT in bcl_ExcludeBCLVars"
+#endif
 }
 
 
@@ -275,6 +375,7 @@ int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp)
 */
 static int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
 {
+#if BC_EXT == 1
   bc cube = bcp_GetBCLCube(p,l,idx);
   bc_vec_t zero_mask = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));       // idx 0: all illegal (00), idx 1: all zero (01), idx 2: all one (10) and idx 3: all don't care (11)
   bc_vec_t one_mask = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 2));       // idx 0: all illegal (00), idx 1: all zero (01), idx 2: all one (10) and idx 3: all don't care (11)  
@@ -379,6 +480,93 @@ static int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
 
   } // else
   return 1;
+#elif BC_EXT == 2
+  bc cube = bcp_GetBCLCube(p,l,idx);
+  bc_vec_t zero_mask = _mm256_loadu_si256(bcp_GetBCLCube(p, p->global_cube_list, 1));
+  bc_vec_t one_mask = _mm256_loadu_si256(bcp_GetBCLCube(p, p->global_cube_list, 2));
+  bc_vec_t r;
+  bc_vec_t z;
+  bc_vec_t o;
+  unsigned j;
+  unsigned zero_cnt;
+  unsigned one_cnt;
+  unsigned k;
+  int one_pos = -1;
+  uint64_t w[4];
+
+  zero_cnt = 0;
+  one_cnt = 0;
+  for( j = 0; j < p->blk_cnt; j++ )
+  {
+    r = _mm256_or_si256(_mm256_xor_si256(_mm256_loadu_si256(grp_dc_mask+j), _mm256_set1_epi32(-1)), _mm256_loadu_si256(cube+j));
+    z = _mm256_or_si256(r, zero_mask);
+    o = _mm256_or_si256(r, one_mask);
+
+    _mm256_storeu_si256((bc_vec_t *)w, z);
+    zero_cnt += __builtin_popcountll(~w[0]);
+    zero_cnt += __builtin_popcountll(~w[1]);
+    zero_cnt += __builtin_popcountll(~w[2]);
+    zero_cnt += __builtin_popcountll(~w[3]);
+
+    _mm256_storeu_si256((bc_vec_t *)w, o);
+    one_cnt += __builtin_popcountll(~w[0]);
+    one_cnt += __builtin_popcountll(~w[1]);
+    one_cnt += __builtin_popcountll(~w[2]);
+    one_cnt += __builtin_popcountll(~w[3]);
+  }
+
+  if ( one_cnt == 0 && zero_cnt == 0 )
+  {
+  }
+  else if ( one_cnt >= 2 )
+  {
+    l->flags[idx] = 1;
+  }
+  else if ( one_cnt == 1 )
+  {
+    for( k = 0; k < p->var_cnt; k++ )
+    {
+      if ( bcp_GetCubeVar(p, grp_dc_mask, k) == 3 && bcp_GetCubeVar(p, cube, k) == 2 )
+      {
+        one_pos = (int)k;
+        break;
+      }
+    }
+    assert( one_pos >= 0 );
+    assert( bcp_GetCubeVar(p, cube, one_pos) == 2 );
+    assert( bcp_GetCubeVar(p, grp_dc_mask, one_pos) == 3 );
+    bcp_SetCubeVar(p, grp_dc_mask, one_pos, 0);
+    for( j = 0; j < p->blk_cnt; j++ )
+    {
+      r = _mm256_xor_si256(_mm256_loadu_si256(grp_dc_mask+j), _mm256_set1_epi32(-1));
+      r = _mm256_or_si256(r, zero_mask);
+      r = _mm256_and_si256(r, _mm256_loadu_si256(cube+j));
+      _mm256_storeu_si256(cube+j, r);
+    }
+    bcp_SetCubeVar(p, grp_dc_mask, one_pos, 3);
+  }
+  else
+  {
+    for( j = 0; j < p->var_cnt; j++ )
+    {
+      if ( bcp_GetCubeVar(p, grp_dc_mask, j) == 3 )
+      {
+        if ( bcp_GetCubeVar(p, cube, j) == 3 )
+        {
+          int new_cube_pos =  bcp_AddBCLCubeByCube(p, l, cube);
+          if ( new_cube_pos < 0 )
+            return 0;
+          bcp_SetCubeVar(p, bcp_GetBCLCube(p,l,new_cube_pos), j, 2);
+        }
+      }
+    }
+    l->flags[idx] = 1;
+
+  }
+  return 1;
+#else
+#error "Unsupported BC_EXT in bcp_DoBCLCubeExcludeGroup"
+#endif
 }
 
 
@@ -389,6 +577,7 @@ static int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
 */
 int bcp_DoBCLExcludeGroup(bcp p, bcl l, bc grp)
 {
+#if BC_EXT == 1
   bc grp_dc_mask;
   int j;
   bc_vec_t r;
@@ -426,6 +615,40 @@ int bcp_DoBCLExcludeGroup(bcp p, bcl l, bc grp)
   
   bcp_EndCubeStackFrame(p);
   return  1;
+#elif BC_EXT == 2
+  bc grp_dc_mask;
+  int j;
+  bc_vec_t r;
+
+  bcp_StartCubeStackFrame(p);
+  grp_dc_mask = bcp_GetTempCube(p);
+  for( j = 0; j < p->blk_cnt; j++ )
+  {
+    r = _mm256_loadu_si256(grp+j);
+    r = _mm256_xor_si256(r, _mm256_set1_epi32(-1));
+    r = _mm256_or_si256(r, _mm256_slli_epi16(r, 1));
+    _mm256_storeu_si256(grp_dc_mask+j, r);
+  }
+
+  for( j = 0; j < l->cnt; j++ )
+  {
+    if ( l->flags[j] == 0 )
+    {
+      if ( bcp_DoBCLCubeExcludeGroup(p, l, j, grp_dc_mask) == 0 )
+      {
+        bcp_EndCubeStackFrame(p);
+        return 0;
+      }
+    }
+  }
+
+  bcp_PurgeBCL(p, l);
+
+  bcp_EndCubeStackFrame(p);
+  return  1;
+#else
+#error "Unsupported BC_EXT in bcp_DoBCLExcludeGroup"
+#endif
 }
 
 

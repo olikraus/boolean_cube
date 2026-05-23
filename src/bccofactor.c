@@ -26,6 +26,7 @@
 /* 16 bit version */
 void bcp_CalcBCLBinateSplitVariableTable(bcp p, bcl l)
 {
+#if BC_EXT == 1
 	int i, blk_cnt = p->blk_cnt;
 	int j, list_cnt = l->cnt;
 	
@@ -217,6 +218,142 @@ void bcp_CalcBCLBinateSplitVariableTable(bcp p, bcl l)
           variable with the highest value of one_cnt + zero_cnt
         */
       } // i, block loop
+#elif BC_EXT == 2
+  int i, blk_cnt = p->blk_cnt;
+  int j, list_cnt = l->cnt;
+
+  bc zero_cnt_cube[8];
+  bc one_cnt_cube[8];
+
+  bc_vec_t c;
+  bc_vec_t t;
+  bc_vec_t oc0, oc1, oc2, oc3, oc4, oc5, oc6, oc7;
+  bc_vec_t zc0, zc1, zc2, zc3, zc4, zc5, zc6, zc7;
+  bc_vec_t mc;
+
+  mc = _mm256_set1_epi16(1);
+
+  zero_cnt_cube[0] = bcp_GetGlobalCube(p, 4);
+  zero_cnt_cube[1] = bcp_GetGlobalCube(p, 5);
+  zero_cnt_cube[2] = bcp_GetGlobalCube(p, 6);
+  zero_cnt_cube[3] = bcp_GetGlobalCube(p, 7);
+  zero_cnt_cube[4] = bcp_GetGlobalCube(p, 8);
+  zero_cnt_cube[5] = bcp_GetGlobalCube(p, 9);
+  zero_cnt_cube[6] = bcp_GetGlobalCube(p, 10);
+  zero_cnt_cube[7] = bcp_GetGlobalCube(p, 11);
+
+  one_cnt_cube[0] = bcp_GetGlobalCube(p, 12);
+  one_cnt_cube[1] = bcp_GetGlobalCube(p, 13);
+  one_cnt_cube[2] = bcp_GetGlobalCube(p, 14);
+  one_cnt_cube[3] = bcp_GetGlobalCube(p, 15);
+  one_cnt_cube[4] = bcp_GetGlobalCube(p, 16);
+  one_cnt_cube[5] = bcp_GetGlobalCube(p, 17);
+  one_cnt_cube[6] = bcp_GetGlobalCube(p, 18);
+  one_cnt_cube[7] = bcp_GetGlobalCube(p, 19);
+
+  for( i = 0; i < blk_cnt; i++ )
+  {
+    zc0 = _mm256_setzero_si256();
+    zc1 = _mm256_setzero_si256();
+    zc2 = _mm256_setzero_si256();
+    zc3 = _mm256_setzero_si256();
+    zc4 = _mm256_setzero_si256();
+    zc5 = _mm256_setzero_si256();
+    zc6 = _mm256_setzero_si256();
+    zc7 = _mm256_setzero_si256();
+    oc0 = _mm256_setzero_si256();
+    oc1 = _mm256_setzero_si256();
+    oc2 = _mm256_setzero_si256();
+    oc3 = _mm256_setzero_si256();
+    oc4 = _mm256_setzero_si256();
+    oc5 = _mm256_setzero_si256();
+    oc6 = _mm256_setzero_si256();
+    oc7 = _mm256_setzero_si256();
+
+    for( j = 0; j < list_cnt; j++ )
+    {
+      if ( l->flags[j] == 0 )
+      {
+        c = _mm256_loadu_si256(bcp_GetBCLCube(p, l, j)+i);
+
+        t = _mm256_andnot_si256(c, mc);
+        oc0 = _mm256_adds_epi16(oc0, t);
+        c = _mm256_srai_epi16(c,1);
+        t = _mm256_andnot_si256(c, mc);
+        zc0 = _mm256_adds_epi16(zc0, t);
+
+        c = _mm256_srai_epi16(c,1);
+        t = _mm256_andnot_si256(c, mc);
+        oc1 = _mm256_adds_epi16(oc1, t);
+        c = _mm256_srai_epi16(c,1);
+        t = _mm256_andnot_si256(c, mc);
+        zc1 = _mm256_adds_epi16(zc1, t);
+
+        c = _mm256_srai_epi16(c,1);
+        t = _mm256_andnot_si256(c, mc);
+        oc2 = _mm256_adds_epi16(oc2, t);
+        c = _mm256_srai_epi16(c,1);
+        t = _mm256_andnot_si256(c, mc);
+        zc2 = _mm256_adds_epi16(zc2, t);
+
+        c = _mm256_srai_epi16(c,1);
+        t = _mm256_andnot_si256(c, mc);
+        oc3 = _mm256_adds_epi16(oc3, t);
+        c = _mm256_srai_epi16(c,1);
+        t = _mm256_andnot_si256(c, mc);
+        zc3 = _mm256_adds_epi16(zc3, t);
+
+        c = _mm256_srai_epi16(c,1);
+        t = _mm256_andnot_si256(c, mc);
+        oc4 = _mm256_adds_epi16(oc4, t);
+        c = _mm256_srai_epi16(c,1);
+        t = _mm256_andnot_si256(c, mc);
+        zc4 = _mm256_adds_epi16(zc4, t);
+
+        c = _mm256_srai_epi16(c,1);
+        t = _mm256_andnot_si256(c, mc);
+        oc5 = _mm256_adds_epi16(oc5, t);
+        c = _mm256_srai_epi16(c,1);
+        t = _mm256_andnot_si256(c, mc);
+        zc5 = _mm256_adds_epi16(zc5, t);
+
+        c = _mm256_srai_epi16(c,1);
+        t = _mm256_andnot_si256(c, mc);
+        oc6 = _mm256_adds_epi16(oc6, t);
+        c = _mm256_srai_epi16(c,1);
+        t = _mm256_andnot_si256(c, mc);
+        zc6 = _mm256_adds_epi16(zc6, t);
+
+        c = _mm256_srai_epi16(c,1);
+        t = _mm256_andnot_si256(c, mc);
+        oc7 = _mm256_adds_epi16(oc7, t);
+        c = _mm256_srai_epi16(c,1);
+        t = _mm256_andnot_si256(c, mc);
+        zc7 = _mm256_adds_epi16(zc7, t);
+      }
+    }
+
+    _mm256_storeu_si256(zero_cnt_cube[0] + i, zc0);
+    _mm256_storeu_si256(zero_cnt_cube[1] + i, zc1);
+    _mm256_storeu_si256(zero_cnt_cube[2] + i, zc2);
+    _mm256_storeu_si256(zero_cnt_cube[3] + i, zc3);
+    _mm256_storeu_si256(zero_cnt_cube[4] + i, zc4);
+    _mm256_storeu_si256(zero_cnt_cube[5] + i, zc5);
+    _mm256_storeu_si256(zero_cnt_cube[6] + i, zc6);
+    _mm256_storeu_si256(zero_cnt_cube[7] + i, zc7);
+
+    _mm256_storeu_si256(one_cnt_cube[0] + i, oc0);
+    _mm256_storeu_si256(one_cnt_cube[1] + i, oc1);
+    _mm256_storeu_si256(one_cnt_cube[2] + i, oc2);
+    _mm256_storeu_si256(one_cnt_cube[3] + i, oc3);
+    _mm256_storeu_si256(one_cnt_cube[4] + i, oc4);
+    _mm256_storeu_si256(one_cnt_cube[5] + i, oc5);
+    _mm256_storeu_si256(one_cnt_cube[6] + i, oc6);
+    _mm256_storeu_si256(one_cnt_cube[7] + i, oc7);
+  }
+#else
+#error "Unsupported BC_EXT in bcp_CalcBCLBinateSplitVariableTable"
+#endif
 }
 
 /*
@@ -301,6 +438,7 @@ int bcp_GetBCLMaxBinateSplitVariableSimple(bcp p, bcl l)
 /* 16 bit version */
 int bcp_GetBCLMaxBinateSplitVariable(bcp p, bcl l)
 {
+#if BC_EXT == 1
   int max_sum_cnt = -1;
   int max_sum_var = -1;
   int i, b;
@@ -418,6 +556,89 @@ int bcp_GetBCLMaxBinateSplitVariable(bcp p, bcl l)
   */
   
   return max_sum_var;
+#elif BC_EXT == 2
+  int max_sum_cnt = -1;
+  int max_sum_var = -1;
+  int i, b;
+  bc_vec_t c;
+  bc_vec_t z;
+  bc_vec_t o;
+
+  bc_vec_t c_cmp = _mm256_setzero_si256();
+  bc_vec_t c_max = _mm256_setzero_si256();
+  bc_vec_t c_idx = _mm256_setzero_si256();
+  bc_vec_t c_max_idx = _mm256_setzero_si256();
+
+  uint16_t m_base_idx[16] = { 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120 };
+  uint16_t m_base_inc[16] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+
+  uint16_t m_idx[16];
+  uint16_t m_max[16];
+
+  bc zero_cnt_cube[8];
+  bc one_cnt_cube[8];
+
+  if ( l->cnt == 0 )
+    return -1;
+
+  zero_cnt_cube[0] = bcp_GetGlobalCube(p, 4);
+  zero_cnt_cube[1] = bcp_GetGlobalCube(p, 5);
+  zero_cnt_cube[2] = bcp_GetGlobalCube(p, 6);
+  zero_cnt_cube[3] = bcp_GetGlobalCube(p, 7);
+  zero_cnt_cube[4] = bcp_GetGlobalCube(p, 8);
+  zero_cnt_cube[5] = bcp_GetGlobalCube(p, 9);
+  zero_cnt_cube[6] = bcp_GetGlobalCube(p, 10);
+  zero_cnt_cube[7] = bcp_GetGlobalCube(p, 11);
+
+  one_cnt_cube[0] = bcp_GetGlobalCube(p, 12);
+  one_cnt_cube[1] = bcp_GetGlobalCube(p, 13);
+  one_cnt_cube[2] = bcp_GetGlobalCube(p, 14);
+  one_cnt_cube[3] = bcp_GetGlobalCube(p, 15);
+  one_cnt_cube[4] = bcp_GetGlobalCube(p, 16);
+  one_cnt_cube[5] = bcp_GetGlobalCube(p, 17);
+  one_cnt_cube[6] = bcp_GetGlobalCube(p, 18);
+  one_cnt_cube[7] = bcp_GetGlobalCube(p, 19);
+
+  for( b = 0; b < p->blk_cnt; b++ )
+  {
+    c_idx = _mm256_loadu_si256((bc_vec_t *)m_base_idx);
+    c_max = _mm256_setzero_si256();
+    c_max_idx = _mm256_setzero_si256();
+
+    for( i = 0; i < 8; i++ )
+    {
+      z = _mm256_loadu_si256(zero_cnt_cube[i]+b);
+      o = _mm256_loadu_si256(one_cnt_cube[i]+b);
+
+      c = _mm256_cmpeq_epi16(z, _mm256_setzero_si256());
+      o = _mm256_andnot_si256(c, o);
+      c = _mm256_cmpeq_epi16(o, _mm256_setzero_si256());
+      z = _mm256_andnot_si256(c, z);
+
+      z = _mm256_adds_epi16(z, o);
+
+      c_cmp = _mm256_cmpgt_epi16(z, c_max);
+      c_max = _mm256_or_si256(_mm256_andnot_si256(c_cmp, c_max), _mm256_and_si256(c_cmp, z));
+      c_max_idx = _mm256_or_si256(_mm256_andnot_si256(c_cmp, c_max_idx), _mm256_and_si256(c_cmp, c_idx));
+
+      c_idx = _mm256_adds_epu16(c_idx, _mm256_loadu_si256((bc_vec_t *)m_base_inc));
+    }
+
+    _mm256_storeu_si256((bc_vec_t *)m_max, c_max);
+    _mm256_storeu_si256((bc_vec_t *)m_idx, c_max_idx);
+    for( i = 0; i < 16; i++ )
+      if ( m_max[i] > 0 )
+        if ( max_sum_cnt < m_max[i] )
+        {
+          max_sum_cnt = m_max[i];
+          max_sum_var = m_idx[i] + b*p->vars_per_blk_cnt;
+        }
+  }
+
+  return max_sum_var;
+#else
+#error "Unsupported BC_EXT in bcp_GetBCLMaxBinateSplitVariable"
+#endif
 }
 
 
@@ -570,6 +791,7 @@ bcl bcp_NewBCLCofacterByVariable(bcp p, bcl l, unsigned var_pos, unsigned value)
 */
 void bcp_DoBCLCofactorByCube(bcp p, bcl l, bc c, int exclude)
 {
+#if BC_EXT == 1
   int i;
   int b;
   bc lc;
@@ -595,6 +817,35 @@ void bcp_DoBCLCofactorByCube(bcp p, bcl l, bc c, int exclude)
     }
   }
   bcp_DoBCLSingleCubeContainment(p, l);
+#elif BC_EXT == 2
+  int i;
+  int b;
+  bc lc;
+  bc_vec_t cc;
+  bc_vec_t dc;
+
+  dc = _mm256_loadu_si256(bcp_GetGlobalCube(p, 3));
+
+  if ( exclude >= 0 )
+    l->flags[exclude] = 1;
+
+  for( b = 0; b < p->blk_cnt; b++ )
+  {
+    cc = _mm256_andnot_si256(_mm256_loadu_si256(c+b), dc);
+
+    for( i = 0; i < l->cnt; i++ )
+    {
+      if ( l->flags[i] == 0 )
+      {
+        lc = bcp_GetBCLCube(p, l, i);
+        _mm256_storeu_si256(lc+b, _mm256_or_si256(cc, _mm256_loadu_si256(lc+b)));
+      }
+    }
+  }
+  bcp_DoBCLSingleCubeContainment(p, l);
+#else
+#error "Unsupported BC_EXT in bcp_DoBCLCofactorByCube"
+#endif
 }
 
 /*
@@ -622,6 +873,7 @@ bcl bcp_NewBCLCofactorByCube(bcp p, bcl l, bc c, int exclude)
 */
 int bcp_IsBCLUnate(bcp p)
 {
+#if BC_EXT == 1
   int b;
   bc zero_cnt_cube[8];
   bc one_cnt_cube[8];
@@ -711,5 +963,76 @@ int bcp_IsBCLUnate(bcp p)
         
   }
   return 1;
+#elif BC_EXT == 2
+  int b;
+  bc zero_cnt_cube[8];
+  bc one_cnt_cube[8];
+  bc_vec_t z;
+  bc_vec_t o;
+
+  zero_cnt_cube[0] = bcp_GetGlobalCube(p, 4);
+  zero_cnt_cube[1] = bcp_GetGlobalCube(p, 5);
+  zero_cnt_cube[2] = bcp_GetGlobalCube(p, 6);
+  zero_cnt_cube[3] = bcp_GetGlobalCube(p, 7);
+  zero_cnt_cube[4] = bcp_GetGlobalCube(p, 8);
+  zero_cnt_cube[5] = bcp_GetGlobalCube(p, 9);
+  zero_cnt_cube[6] = bcp_GetGlobalCube(p, 10);
+  zero_cnt_cube[7] = bcp_GetGlobalCube(p, 11);
+
+  one_cnt_cube[0] = bcp_GetGlobalCube(p, 12);
+  one_cnt_cube[1] = bcp_GetGlobalCube(p, 13);
+  one_cnt_cube[2] = bcp_GetGlobalCube(p, 14);
+  one_cnt_cube[3] = bcp_GetGlobalCube(p, 15);
+  one_cnt_cube[4] = bcp_GetGlobalCube(p, 16);
+  one_cnt_cube[5] = bcp_GetGlobalCube(p, 17);
+  one_cnt_cube[6] = bcp_GetGlobalCube(p, 18);
+  one_cnt_cube[7] = bcp_GetGlobalCube(p, 19);
+
+  for( b = 0; b < p->blk_cnt; b++ )
+  {
+    z = _mm256_cmpeq_epi8(_mm256_loadu_si256(zero_cnt_cube[0]+b), _mm256_setzero_si256());
+    o = _mm256_cmpeq_epi8(_mm256_loadu_si256(one_cnt_cube[0]+b), _mm256_setzero_si256());
+    if ( _mm256_movemask_epi8(_mm256_or_si256(o, z)) != (int)0xFFFFFFFF )
+      return 0;
+
+    z = _mm256_cmpeq_epi8(_mm256_loadu_si256(zero_cnt_cube[1]+b), _mm256_setzero_si256());
+    o = _mm256_cmpeq_epi8(_mm256_loadu_si256(one_cnt_cube[1]+b), _mm256_setzero_si256());
+    if ( _mm256_movemask_epi8(_mm256_or_si256(o, z)) != (int)0xFFFFFFFF )
+      return 0;
+
+    z = _mm256_cmpeq_epi8(_mm256_loadu_si256(zero_cnt_cube[2]+b), _mm256_setzero_si256());
+    o = _mm256_cmpeq_epi8(_mm256_loadu_si256(one_cnt_cube[2]+b), _mm256_setzero_si256());
+    if ( _mm256_movemask_epi8(_mm256_or_si256(o, z)) != (int)0xFFFFFFFF )
+      return 0;
+
+    z = _mm256_cmpeq_epi8(_mm256_loadu_si256(zero_cnt_cube[3]+b), _mm256_setzero_si256());
+    o = _mm256_cmpeq_epi8(_mm256_loadu_si256(one_cnt_cube[3]+b), _mm256_setzero_si256());
+    if ( _mm256_movemask_epi8(_mm256_or_si256(o, z)) != (int)0xFFFFFFFF )
+      return 0;
+
+    z = _mm256_cmpeq_epi8(_mm256_loadu_si256(zero_cnt_cube[4]+b), _mm256_setzero_si256());
+    o = _mm256_cmpeq_epi8(_mm256_loadu_si256(one_cnt_cube[4]+b), _mm256_setzero_si256());
+    if ( _mm256_movemask_epi8(_mm256_or_si256(o, z)) != (int)0xFFFFFFFF )
+      return 0;
+
+    z = _mm256_cmpeq_epi8(_mm256_loadu_si256(zero_cnt_cube[5]+b), _mm256_setzero_si256());
+    o = _mm256_cmpeq_epi8(_mm256_loadu_si256(one_cnt_cube[5]+b), _mm256_setzero_si256());
+    if ( _mm256_movemask_epi8(_mm256_or_si256(o, z)) != (int)0xFFFFFFFF )
+      return 0;
+
+    z = _mm256_cmpeq_epi8(_mm256_loadu_si256(zero_cnt_cube[6]+b), _mm256_setzero_si256());
+    o = _mm256_cmpeq_epi8(_mm256_loadu_si256(one_cnt_cube[6]+b), _mm256_setzero_si256());
+    if ( _mm256_movemask_epi8(_mm256_or_si256(o, z)) != (int)0xFFFFFFFF )
+      return 0;
+
+    z = _mm256_cmpeq_epi8(_mm256_loadu_si256(zero_cnt_cube[7]+b), _mm256_setzero_si256());
+    o = _mm256_cmpeq_epi8(_mm256_loadu_si256(one_cnt_cube[7]+b), _mm256_setzero_si256());
+    if ( _mm256_movemask_epi8(_mm256_or_si256(o, z)) != (int)0xFFFFFFFF )
+      return 0;
+  }
+  return 1;
+#else
+#error "Unsupported BC_EXT in bcp_IsBCLUnate"
+#endif
 }
 

@@ -325,6 +325,7 @@ const char *json_output_spec =
 void help()
 {
   puts("Boolean Cube Calculator, " __DATE__);
+  printf("Compiled BC_EXT=%d (%s, %d-bit vector)\n", BC_EXT, BC_EXT_NAME, BC_VEC_BITS);
   puts("-h                              Print this help.");
   puts("-v                              Increase log level. Use multiple '-v' for more details");
   puts("-test                           Execute internal test procedure. Requires debug version of this executable.");
@@ -344,11 +345,35 @@ int isCompactJSONOutput = 1;
 const char *json_input_filenames[JSON_INPUT_FILE_MAX];
 int json_input_file_cnt = 0;
 
+static int bc_runtime_check_cpu_support(void)
+{
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)
+  #if BC_EXT == 2
+  if ( __builtin_cpu_supports("avx2") == 0 )
+  {
+    fprintf(stderr, "Error: This binary was compiled with BC_EXT=%d (%s), but CPU/OS AVX2 support is not available.\n", BC_EXT, BC_EXT_NAME);
+    return 0;
+  }
+  #elif BC_EXT == 3
+  if ( __builtin_cpu_supports("avx512f") == 0 || __builtin_cpu_supports("avx512bw") == 0 )
+  {
+    fprintf(stderr, "Error: This binary was compiled with BC_EXT=%d (%s), but CPU/OS AVX-512 support (avx512f+avx512bw) is not available.\n", BC_EXT, BC_EXT_NAME);
+    return 0;
+  }
+  #endif
+#endif
+  return 1;
+}
+
 int main(int argc, char **argv)
 {
   //struct tms start, end;
   if ( *argv == NULL )
       return 0;
+
+  if ( bc_runtime_check_cpu_support() == 0 )
+    return 1;
+
   //times(&start);
   argv++;    // skip program name
   if ( (*argv) == NULL )

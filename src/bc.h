@@ -58,19 +58,25 @@
   Vector extension selector:
     0: no extension (not implemented)
     1: SSE 128 bit
-    2: AVX 256 bit
+    2: AVX2 256 bit
     3: AVX-512 512 bit
 */
 #ifndef BC_EXT
-#define BC_EXT 1
+#define BC_EXT 2
 #endif
 
 #if BC_EXT == 1
 typedef __m128i bc_vec_t;
+#define BC_EXT_NAME "SSE"
+#define BC_VEC_BITS 128
 #elif BC_EXT == 2
 typedef __m256i bc_vec_t;
+#define BC_EXT_NAME "AVX2"
+#define BC_VEC_BITS 256
 #elif BC_EXT == 3
 typedef __m512i bc_vec_t;
+#define BC_EXT_NAME "AVX-512"
+#define BC_VEC_BITS 512
 #elif BC_EXT == 0
 #error "BC_EXT=0 (no extension) is currently not implemented"
 #else

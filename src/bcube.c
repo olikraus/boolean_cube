@@ -38,8 +38,13 @@
 #include <assert.h>
 
 
-#define m128i_is_equal(m1, m2) \
+#if BC_EXT == 1
+#define bc_vec_is_equal(m1, m2) \
   ((_mm_movemask_epi8(_mm_cmpeq_epi16((m1),(m2))) == 0xFFFF)?1:0)
+#elif BC_EXT == 2
+#define bc_vec_is_equal(m1, m2) \
+  ((_mm256_movemask_epi8(_mm256_cmpeq_epi16((m1),(m2))) == (int)0xFFFFFFFF)?1:0)
+#endif
 
 
 void bcp_ClrCube(bcp p, bc c)
@@ -130,14 +135,26 @@ void bcp_SetCubeByString(bcp p, bc c, const char *s)
 
 int bcp_IsTautologyCube(bcp p, bc c)
 {
+#if BC_EXT == 1
   // assumption: Unused vars are set to 3 (don't care)
   int i, cnt = p->blk_cnt;
   bc_vec_t t = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 3));
   
   for( i = 0; i < cnt; i++ )
-    if ( m128i_is_equal(_mm_loadu_si128(c+i), t) == 0 )
+    if ( bc_vec_is_equal(_mm_loadu_si128(c+i), t) == 0 )
       return 0;
   return 1;
+#elif BC_EXT == 2
+  int i, cnt = p->blk_cnt;
+  bc_vec_t t = _mm256_loadu_si256(bcp_GetBCLCube(p, p->global_cube_list, 3));
+
+  for( i = 0; i < cnt; i++ )
+    if ( bc_vec_is_equal(_mm256_loadu_si256(c+i), t) == 0 )
+      return 0;
+  return 1;
+#else
+#error "Unsupported BC_EXT in bcp_IsTautologyCube"
+#endif
 }
 
 
@@ -147,6 +164,7 @@ int bcp_IsTautologyCube(bcp p, bc c)
 */
 int bcp_IntersectionCube(bcp p, bc r, bc a, bc b)
 {
+#if BC_EXT == 1
   int i, cnt = p->blk_cnt;
   bc_vec_t z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));
   bc_vec_t rr;
@@ -171,6 +189,23 @@ int bcp_IntersectionCube(bcp p, bc r, bc a, bc b)
   if ( f == 0xffff )
     return 1;
   return 0;
+#elif BC_EXT == 2
+  int i, cnt = p->blk_cnt;
+  bc_vec_t z = _mm256_loadu_si256(bcp_GetBCLCube(p, p->global_cube_list, 1));
+  bc_vec_t rr;
+  uint32_t f = 0x0ffffffffu;
+  for( i = 0; i < cnt; i++ )
+  {
+    rr = _mm256_and_si256(_mm256_loadu_si256(a+i), _mm256_loadu_si256(b+i));
+    _mm256_storeu_si256(r+i, rr);
+    f &= (uint32_t)_mm256_movemask_epi8(_mm256_cmpeq_epi16(_mm256_and_si256(_mm256_or_si256(rr, _mm256_srai_epi16(rr,1)), z), z));
+  }
+  if ( f == 0x0ffffffffu )
+    return 1;
+  return 0;
+#else
+#error "Unsupported BC_EXT in bcp_IntersectionCube"
+#endif
 }
 
 /*
@@ -184,6 +219,7 @@ int bcp_IntersectionCube(bcp p, bc r, bc a, bc b)
 */
 void bcp_GetVariableMask(bcp p, bc mask, bc c)
 {
+#if BC_EXT == 1
   int i, cnt = p->blk_cnt;
   bc_vec_t z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));       // idx 0: all illegal (00), idx 1: all zero (01), idx 2: all one (10) and idx 3: all don't care (11)
   bc_vec_t r;
@@ -194,6 +230,20 @@ void bcp_GetVariableMask(bcp p, bc mask, bc c)
     r = _mm_andnot_si128(r, z);                                    // r = ~r & 01   this will generate 00 for DC and 01 for "10" and "01" (and also for "00")
     _mm_storeu_si128(mask+i, r);          // and store the result in the destination cube    
   }
+#elif BC_EXT == 2
+  int i, cnt = p->blk_cnt;
+  bc_vec_t z = _mm256_loadu_si256(bcp_GetBCLCube(p, p->global_cube_list, 1));
+  bc_vec_t r;
+  for( i = 0; i < cnt; i++ )
+  {
+    r = _mm256_loadu_si256(c+i);
+    r = _mm256_and_si256(r, _mm256_srai_epi16(r,1));
+    r = _mm256_andnot_si256(r, z);
+    _mm256_storeu_si256(mask+i, r);
+  }
+#else
+#error "Unsupported BC_EXT in bcp_GetVariableMask"
+#endif
 }
 
 /*
@@ -206,6 +256,7 @@ void bcp_GetVariableMask(bcp p, bc mask, bc c)
 */
 void bcp_InvertCube(bcp p, bc c)
 {
+#if BC_EXT == 1
   int i, cnt = p->blk_cnt;
   bc_vec_t z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));
   bc_vec_t r;
@@ -218,6 +269,22 @@ void bcp_InvertCube(bcp p, bc c)
     r = _mm_xor_si128( r, _mm_loadu_si128(c+i) );	// invert the the original values, except for DC
     _mm_storeu_si128(c+i, r);          // and store the result in the cube 
   }
+#elif BC_EXT == 2
+  int i, cnt = p->blk_cnt;
+  bc_vec_t z = _mm256_loadu_si256(bcp_GetBCLCube(p, p->global_cube_list, 1));
+  bc_vec_t r;
+  for( i = 0; i < cnt; i++ )
+  {
+    r = _mm256_loadu_si256(c+i);
+    r = _mm256_and_si256(r, _mm256_srai_epi16(r,1));
+    r = _mm256_andnot_si256(r, z);
+    r = _mm256_or_si256(r, _mm256_slli_epi16(r,1));
+    r = _mm256_xor_si256(r, _mm256_loadu_si256(c+i));
+    _mm256_storeu_si256(c+i, r);
+  }
+#else
+#error "Unsupported BC_EXT in bcp_InvertCube"
+#endif
 }
 
 /*
@@ -226,6 +293,7 @@ void bcp_InvertCube(bcp p, bc c)
 */
 int bcp_IsAndZero(bcp p, bc a, bc b)
 {
+#if BC_EXT == 1
   int i, cnt = p->blk_cnt;
   bc_vec_t zz = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 0));  // idx 0: all illegal (00), idx 1: all zero (01), idx 2: all one (10) and idx 3: all don't care (11)
   bc_vec_t rr;
@@ -237,6 +305,21 @@ int bcp_IsAndZero(bcp p, bc a, bc b)
       return 0;         // some none-zero bits detected
   }
   return 1;     // all zero after bitwise AND
+#elif BC_EXT == 2
+  int i, cnt = p->blk_cnt;
+  bc_vec_t zz = _mm256_loadu_si256(bcp_GetBCLCube(p, p->global_cube_list, 0));
+  bc_vec_t rr;
+
+  for( i = 0; i < cnt; i++ )
+  {
+    rr = _mm256_and_si256(_mm256_loadu_si256(a+i), _mm256_loadu_si256(b+i));
+    if ( _mm256_movemask_epi8(_mm256_cmpeq_epi8(rr, zz)) != (int)0xFFFFFFFF )
+      return 0;
+  }
+  return 1;
+#else
+#error "Unsupported BC_EXT in bcp_IsAndZero"
+#endif
 }
 
 /*
@@ -244,6 +327,7 @@ int bcp_IsAndZero(bcp p, bc a, bc b)
 */
 unsigned bcp_OrBitCnt(bcp p, bc r, bc a, bc b)
 {
+#if BC_EXT == 1
   int i, cnt = p->blk_cnt;
   bc_vec_t rr;
   unsigned bitcnt = 0;
@@ -256,10 +340,30 @@ unsigned bcp_OrBitCnt(bcp p, bc r, bc a, bc b)
     bitcnt += __builtin_popcountll(_mm_cvtsi128_si64(rr));    
   }
   return bitcnt;
+#elif BC_EXT == 2
+  int i, cnt = p->blk_cnt;
+  bc_vec_t rr;
+  unsigned bitcnt = 0;
+  uint64_t w[4];
+  for( i = 0; i < cnt; i++ )
+  {
+    rr = _mm256_or_si256(_mm256_loadu_si256(a+i), _mm256_loadu_si256(b+i));
+    _mm256_storeu_si256(r+i, rr);
+    _mm256_storeu_si256((bc_vec_t *)w, rr);
+    bitcnt += __builtin_popcountll(w[0]);
+    bitcnt += __builtin_popcountll(w[1]);
+    bitcnt += __builtin_popcountll(w[2]);
+    bitcnt += __builtin_popcountll(w[3]);
+  }
+  return bitcnt;
+#else
+#error "Unsupported BC_EXT in bcp_OrBitCnt"
+#endif
 }
 
 int bcp_IsIntersectionCube(bcp p, bc a, bc b)
 {
+#if BC_EXT == 1
   int i, cnt = p->blk_cnt;
   bc_vec_t z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));  // idx 0: all illegal (00), idx 1: all zero (01), idx 2: all one (10) and idx 3: all don't care (11)
   bc_vec_t rr;
@@ -283,11 +387,28 @@ int bcp_IsIntersectionCube(bcp p, bc a, bc b)
       return 0;
   }
   return 1;
+#elif BC_EXT == 2
+  int i, cnt = p->blk_cnt;
+  bc_vec_t z = _mm256_loadu_si256(bcp_GetBCLCube(p, p->global_cube_list, 1));
+  bc_vec_t rr;
+  uint32_t f = 0x0ffffffffu;
+  for( i = 0; i < cnt; i++ )
+  {
+    rr = _mm256_and_si256(_mm256_loadu_si256(a+i), _mm256_loadu_si256(b+i));
+    f &= (uint32_t)_mm256_movemask_epi8(_mm256_cmpeq_epi16(_mm256_and_si256(_mm256_or_si256(rr, _mm256_srai_epi16(rr,1)), z), z));
+    if ( f != 0x0ffffffffu )
+      return 0;
+  }
+  return 1;
+#else
+#error "Unsupported BC_EXT in bcp_IsIntersectionCube"
+#endif
 }
 
 /* returns 1, if cube "c" is illegal, return 0 if "c" is not illegal */
 int bcp_IsIllegal(bcp p, bc c)
 {
+#if BC_EXT == 1
   int i, cnt = p->blk_cnt;
   bc_vec_t z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));
   bc_vec_t cc;
@@ -300,6 +421,22 @@ int bcp_IsIllegal(bcp p, bc c)
   if ( f == 0xffff )
     return 0;
   return 1;
+#elif BC_EXT == 2
+  int i, cnt = p->blk_cnt;
+  bc_vec_t z = _mm256_loadu_si256(bcp_GetBCLCube(p, p->global_cube_list, 1));
+  bc_vec_t cc;
+  uint32_t f = 0x0ffffffffu;
+  for( i = 0; i < cnt; i++ )
+  {
+    cc = _mm256_loadu_si256(c+i);
+    f &= (uint32_t)_mm256_movemask_epi8(_mm256_cmpeq_epi16(_mm256_and_si256(_mm256_or_si256(cc, _mm256_srai_epi16(cc,1)), z), z));
+  }
+  if ( f == 0x0ffffffffu )
+    return 0;
+  return 1;
+#else
+#error "Unsupported BC_EXT in bcp_IsIllegal"
+#endif
 }
 
 /*
@@ -309,6 +446,7 @@ int bcp_IsIllegal(bcp p, bc c)
 */
 int bcp_GetCubeVariableCount(bcp p, bc cube)
 {
+#if BC_EXT == 1
   int i, cnt = p->blk_cnt;
   int delta = 0;
     bc_vec_t c;
@@ -322,10 +460,29 @@ int bcp_GetCubeVariableCount(bcp p, bc cube)
     delta += __builtin_popcountll(~_mm_cvtsi128_si64(c));
   }  
   return delta;
+#elif BC_EXT == 2
+  int i, cnt = p->blk_cnt;
+  int delta = 0;
+  bc_vec_t c;
+  uint64_t w[4];
+  for( i = 0; i < cnt; i++ )
+  {
+    c = _mm256_loadu_si256(cube+i);
+    _mm256_storeu_si256((bc_vec_t *)w, c);
+    delta += __builtin_popcountll(~w[0]);
+    delta += __builtin_popcountll(~w[1]);
+    delta += __builtin_popcountll(~w[2]);
+    delta += __builtin_popcountll(~w[3]);
+  }
+  return delta;
+#else
+#error "Unsupported BC_EXT in bcp_GetCubeVariableCount"
+#endif
 }
 
 int bcp_GetCubeDelta(bcp p, bc a, bc b)
 {
+#if BC_EXT == 1
   int i, cnt = p->blk_cnt;
   int delta = 0;
   bc_vec_t zeromask = _mm_loadu_si128(bcp_GetGlobalCube(p, 1));
@@ -342,6 +499,30 @@ int bcp_GetCubeDelta(bcp p, bc a, bc b)
   }
   
   return delta;
+#elif BC_EXT == 2
+  int i, cnt = p->blk_cnt;
+  int delta = 0;
+  bc_vec_t zeromask = _mm256_loadu_si256(bcp_GetGlobalCube(p, 1));
+  bc_vec_t c;
+  uint64_t w[4];
+
+  for( i = 0; i < cnt; i++ )
+  {
+    c = _mm256_loadu_si256(a+i);
+    c = _mm256_and_si256(c, _mm256_loadu_si256(b+i));
+    c = _mm256_or_si256(c, _mm256_srai_epi16(c,1));
+    c = _mm256_andnot_si256(c, zeromask);
+    _mm256_storeu_si256((bc_vec_t *)w, c);
+    delta += __builtin_popcountll(w[0]);
+    delta += __builtin_popcountll(w[1]);
+    delta += __builtin_popcountll(w[2]);
+    delta += __builtin_popcountll(w[3]);
+  }
+
+  return delta;
+#else
+#error "Unsupported BC_EXT in bcp_GetCubeDelta"
+#endif
 }
 
 
@@ -353,6 +534,7 @@ int bcp_GetCubeDelta(bcp p, bc a, bc b)
 */
 int bcp_IsSubsetCube(bcp p, bc a, bc b)
 {
+#if BC_EXT == 1
   int i;
   bc_vec_t bb;
   for( i = 0; i < p->blk_cnt; i++ )
@@ -363,5 +545,18 @@ int bcp_IsSubsetCube(bcp p, bc a, bc b)
       return 0;
   }
   return 1;
+#elif BC_EXT == 2
+  int i;
+  bc_vec_t bb;
+  for( i = 0; i < p->blk_cnt; i++ )
+  {
+    bb = _mm256_loadu_si256(b+i);
+    if ( _mm256_movemask_epi8(_mm256_cmpeq_epi16(_mm256_and_si256(_mm256_loadu_si256(a+i), bb), bb )) != (int)0xFFFFFFFF )
+      return 0;
+  }
+  return 1;
+#else
+#error "Unsupported BC_EXT in bcp_IsSubsetCube"
+#endif
 }
 

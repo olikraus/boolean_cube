@@ -3,8 +3,17 @@
 
 COPATH = ../../c-object/co
 BCPATH = ../src
+BC_EXT ?= 2
 
-CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I$(BCPATH) -I.
+CFLAGS = -g -Wall -I$(COPATH) -I$(BCPATH) -I. -DBC_EXT=$(BC_EXT)
+
+ifeq ($(BC_EXT),1)
+CFLAGS += -msse2 -march=silvermont
+else ifeq ($(BC_EXT),2)
+CFLAGS += -mavx2
+else ifeq ($(BC_EXT),3)
+CFLAGS += -mavx512f -mavx512bw
+endif
 
 # CFLAGS = -g -march=silvermont  -Wall  -I$(COPATH) -I.            
 # gcov -b 

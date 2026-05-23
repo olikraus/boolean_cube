@@ -394,6 +394,7 @@ int *bcp_GetBCLVarCntList(bcp p, bcl l)
 */
 void bcp_SetBCLFlipVariables(bcp p, bcl l)
 {
+#if BC_EXT == 1
   int i, j;
   bc c;
   bc_vec_t r;
@@ -420,6 +421,35 @@ void bcp_SetBCLFlipVariables(bcp p, bcl l)
       ptr[j/8] |= 3 << ((j&7)*2);
     }
   }
+#elif BC_EXT == 2
+  int i, j;
+  bc c;
+  bc_vec_t r;
+  bc_vec_t o = _mm256_loadu_si256(bcp_GetBCLCube(p, p->global_cube_list, 2));
+  bc_vec_t dc = _mm256_loadu_si256(bcp_GetBCLCube(p, p->global_cube_list, 3));
+  uint16_t *ptr;
+
+  for( i = 0; i < l->cnt; i++ )
+  {
+    c = bcp_GetBCLCube(p,l,i);
+    for( j = 0; j < p->blk_cnt; j++ )
+    {
+      r = _mm256_loadu_si256(c+j);
+      r = _mm256_and_si256(r, _mm256_slli_epi16(r,1));
+      r = _mm256_and_si256(r, o);
+      r = _mm256_andnot_si256(r, dc);
+      _mm256_storeu_si256(c+j, r);
+    }
+
+    ptr = (uint16_t *)c;
+    for( j = p->var_cnt; j < p->blk_cnt * p->vars_per_blk_cnt; j++ )
+    {
+      ptr[j/8] |= 3 << ((j&7)*2);
+    }
+  }
+#else
+#error "Unsupported BC_EXT in bcp_SetBCLFlipVariables"
+#endif
 }
 
 /*
@@ -446,6 +476,7 @@ void bcp_SetBCLFlipVariables(bcp p, bcl l)
 */
 void bcp_SetBCLAllDCToZero(bcp p, bcl l, bcl extra_mask)
 {
+#if BC_EXT == 1
   int i, j;
   bc c;
   uint16_t *ptr;
@@ -515,6 +546,56 @@ void bcp_SetBCLAllDCToZero(bcp p, bcl l, bcl extra_mask)
   }
 
   //bcp_ShowBCL(p, l);
+#elif BC_EXT == 2
+  int i, j;
+  bc c;
+  uint16_t *ptr;
+  bc_vec_t o = _mm256_loadu_si256(bcp_GetBCLCube(p, p->global_cube_list, 2));
+  bc_vec_t dc = _mm256_loadu_si256(bcp_GetBCLCube(p, p->global_cube_list, 3));
+  bc_vec_t mask;
+
+  for( j = 0; j < p->blk_cnt; j++ )
+  {
+    mask = dc;
+
+    if ( extra_mask != NULL )
+    {
+      for( i = 0; i < extra_mask->cnt; i++ )
+      {
+        c = bcp_GetBCLCube(p,extra_mask,i);
+        mask = _mm256_and_si256(mask, _mm256_loadu_si256(c+j));
+      }
+    }
+
+    for( i = 0; i < l->cnt; i++ )
+    {
+      c = bcp_GetBCLCube(p,l,i);
+      mask = _mm256_and_si256(mask, _mm256_loadu_si256(c+j));
+    }
+
+    mask = _mm256_and_si256(mask, _mm256_slli_epi16(mask,1));
+    mask = _mm256_and_si256(mask, o);
+    mask = _mm256_andnot_si256(mask, dc);
+
+    for( i = 0; i < l->cnt; i++ )
+    {
+      c = bcp_GetBCLCube(p,l,i);
+      _mm256_storeu_si256(c+j, _mm256_and_si256(mask, _mm256_loadu_si256(c+j)));
+    }
+  }
+
+  for( i = 0; i < l->cnt; i++ )
+  {
+    c = bcp_GetBCLCube(p, l, i);
+    ptr = (uint16_t *)c;
+    for( j = p->var_cnt; j < p->blk_cnt * p->vars_per_blk_cnt; j++ )
+    {
+      ptr[j/8] |= 3 << ((j&7)*2);
+    }
+  }
+#else
+#error "Unsupported BC_EXT in bcp_SetBCLAllDCToZero"
+#endif
 }
 
 /*
@@ -528,6 +609,7 @@ void bcp_SetBCLAllDCToZero(bcp p, bcl l, bcl extra_mask)
 */
 void bcp_AndElementsBCL(bcp p, bcl l, bc result)
 {
+#if BC_EXT == 1
   int i, j;
   bc_vec_t r;
   bcp_CopyGlobalCube(p, result, 3);
@@ -540,6 +622,22 @@ void bcp_AndElementsBCL(bcp p, bcl l, bc result)
     }
     _mm_storeu_si128(result+j, r);
   }
+#elif BC_EXT == 2
+  int i, j;
+  bc_vec_t r;
+  bcp_CopyGlobalCube(p, result, 3);
+  for( j = 0; j < p->blk_cnt; j++ )
+  {
+    r = _mm256_loadu_si256(result+j);
+    for( i = 0; i < l->cnt; i++ )
+    {
+      r = _mm256_and_si256(r, _mm256_loadu_si256(bcp_GetBCLCube(p,l,i)+j));
+    }
+    _mm256_storeu_si256(result+j, r);
+  }
+#else
+#error "Unsupported BC_EXT in bcp_AndElementsBCL"
+#endif
 }
 
 /*
