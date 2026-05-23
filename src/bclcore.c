@@ -1,4 +1,4 @@
-/*
+﻿/*
 
   bclcore.c
   
@@ -45,7 +45,7 @@ bcl bcp_NewBCLByBCL(bcp p, bcl l)
       n->max = 0;
       return n;
     }
-    n->list = (__m128i *)malloc(l->cnt*p->bytes_per_cube_cnt);
+    n->list = (bc_vec_t *)malloc(l->cnt*p->bytes_per_cube_cnt);
     if ( n->list != NULL )
     {
       n->flags = (uint8_t *)malloc(l->cnt*sizeof(uint8_t));
@@ -89,12 +89,12 @@ int bcp_CopyBCL(bcp p, bcl a, bcl b)
 {
   if ( a->max < b->cnt )
   {
-    __m128i *list;
+    bc_vec_t *list;
     uint8_t *flags;
     if ( a->list == NULL )
-      list = (__m128i *)malloc(b->cnt*p->bytes_per_cube_cnt);
+      list = (bc_vec_t *)malloc(b->cnt*p->bytes_per_cube_cnt);
     else
-      list = (__m128i *)realloc(a->list, b->cnt*p->bytes_per_cube_cnt);
+      list = (bc_vec_t *)realloc(a->list, b->cnt*p->bytes_per_cube_cnt);
     if ( list == NULL )
       return 0;
     a->list = list;
@@ -133,12 +133,12 @@ void bcp_DeleteBCL(bcp p, bcl l)
 #define BCL_EXTEND 32
 int bcp_ExtendBCL(bcp p, bcl l)
 {
-  __m128i *list;
+  bc_vec_t *list;
   uint8_t *flags;
   if ( l->list == NULL )
-    list = (__m128i *)malloc(BCL_EXTEND*p->bytes_per_cube_cnt);
+    list = (bc_vec_t *)malloc(BCL_EXTEND*p->bytes_per_cube_cnt);
   else
-    list = (__m128i *)realloc(l->list, (BCL_EXTEND+l->max)*p->bytes_per_cube_cnt);
+    list = (bc_vec_t *)realloc(l->list, (BCL_EXTEND+l->max)*p->bytes_per_cube_cnt);
   if ( list == NULL )
     return 0;
   l->list = list;
@@ -396,9 +396,9 @@ void bcp_SetBCLFlipVariables(bcp p, bcl l)
 {
   int i, j;
   bc c;
-  __m128i r;
-  __m128i o = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 2));
-  __m128i dc = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 3));
+  bc_vec_t r;
+  bc_vec_t o = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 2));
+  bc_vec_t dc = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 3));
   uint16_t *ptr;
   
   for( i = 0; i < l->cnt; i++ )
@@ -451,10 +451,10 @@ void bcp_SetBCLAllDCToZero(bcp p, bcl l, bcl extra_mask)
   uint16_t *ptr;
   //bc illegal_cube = bcp_GetBCLCube(p, p->global_cube_list, 0);
   
-  //__m128i z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));
-  __m128i o = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 2));
-  __m128i dc = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 3));
-  __m128i mask;
+  //bc_vec_t z = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));
+  bc_vec_t o = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 2));
+  bc_vec_t dc = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 3));
+  bc_vec_t mask;
 
   /* loop over all blocks of the cube */  
 
@@ -529,7 +529,7 @@ void bcp_SetBCLAllDCToZero(bcp p, bcl l, bcl extra_mask)
 void bcp_AndElementsBCL(bcp p, bcl l, bc result)
 {
   int i, j;
-  __m128i r;
+  bc_vec_t r;
   bcp_CopyGlobalCube(p, result, 3);
   for( j = 0; j < p->blk_cnt; j++ )
   {    

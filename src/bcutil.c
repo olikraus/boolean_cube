@@ -1,4 +1,4 @@
-/*
+﻿/*
 
   bcutil.c
   
@@ -21,12 +21,12 @@
 
 
 /*
-static __m128i m128i_get_n_bit_mask(uint16_t val, unsigned bit_pos)
+static bc_vec_t m128i_get_n_bit_mask(uint16_t val, unsigned bit_pos)
 {
   uint16_t a[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
   val <<= bit_pos & 0xf;
   a[7-(bit_pos>>4)] = val;
-  return _mm_loadu_si128((__m128i *)a);
+  return _mm_loadu_si128((bc_vec_t *)a);
 }
 */
 
@@ -74,7 +74,7 @@ static __m128i m128i_get_n_bit_mask(uint16_t val, unsigned bit_pos)
 
 
 
-void print128_num(__m128i var)
+void print128_num(bc_vec_t var)
 {
     uint8_t val[16];
     memcpy(val, &var, sizeof(val));

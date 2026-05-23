@@ -1,4 +1,4 @@
-/*
+﻿/*
 
   bccofactor.c
   
@@ -33,11 +33,11 @@ void bcp_CalcBCLBinateSplitVariableTable(bcp p, bcl l)
 	bc one_cnt_cube[8];
 	
 
-	__m128i c;  // current block from the current cube from the list
-	__m128i t;	// temp block
-	__m128i oc0, oc1, oc2, oc3, oc4, oc5, oc6, oc7;	// one count
-	__m128i zc0, zc1, zc2, zc3, zc4, zc5, zc6, zc7;	// zero count
-	__m128i mc; // mask cube for the lowest bit in each byte
+	bc_vec_t c;  // current block from the current cube from the list
+	bc_vec_t t;	// temp block
+	bc_vec_t oc0, oc1, oc2, oc3, oc4, oc5, oc6, oc7;	// one count
+	bc_vec_t zc0, zc1, zc2, zc3, zc4, zc5, zc6, zc7;	// zero count
+	bc_vec_t mc; // mask cube for the lowest bit in each byte
 
 	/* constuct the byte mask: we need the lowest bit of each byte */
 	mc = _mm_setzero_si128();
@@ -304,14 +304,14 @@ int bcp_GetBCLMaxBinateSplitVariable(bcp p, bcl l)
   int max_sum_cnt = -1;
   int max_sum_var = -1;
   int i, b;
-  __m128i c;
-  __m128i z;
-  __m128i o;
+  bc_vec_t c;
+  bc_vec_t z;
+  bc_vec_t o;
   
-  __m128i c_cmp = _mm_setzero_si128();
-  __m128i c_max = _mm_setzero_si128();
-  __m128i c_idx = _mm_setzero_si128();
-  __m128i c_max_idx = _mm_setzero_si128();
+  bc_vec_t c_cmp = _mm_setzero_si128();
+  bc_vec_t c_max = _mm_setzero_si128();
+  bc_vec_t c_idx = _mm_setzero_si128();
+  bc_vec_t c_max_idx = _mm_setzero_si128();
   
   uint16_t m_base_idx[8] = { 0, 8, 16, 24,  32, 40, 48, 56 };
   uint16_t m_base_inc[8] = { 1, 1, 1, 1,   1, 1, 1, 1 };
@@ -346,7 +346,7 @@ int bcp_GetBCLMaxBinateSplitVariable(bcp p, bcl l)
 
   for( b = 0; b < p->blk_cnt; b++ )
   {
-      c_idx = _mm_loadu_si128((__m128i *)m_base_idx);
+      c_idx = _mm_loadu_si128((bc_vec_t *)m_base_idx);
       c_max = _mm_setzero_si128();
       c_max_idx = _mm_setzero_si128();
     
@@ -392,11 +392,11 @@ int bcp_GetBCLMaxBinateSplitVariable(bcp p, bcl l)
         c_max = _mm_or_si128( _mm_andnot_si128(c_cmp, c_max), _mm_and_si128(c_cmp, z) );                        // update max value if required
         c_max_idx = _mm_or_si128( _mm_andnot_si128(c_cmp, c_max_idx), _mm_and_si128(c_cmp, c_idx) );    // update index value if required        
         
-        c_idx = _mm_adds_epu16(c_idx, _mm_loadu_si128((__m128i *)m_base_inc));   // we just add 1 to the value, so the highest value per byte is 64
+        c_idx = _mm_adds_epu16(c_idx, _mm_loadu_si128((bc_vec_t *)m_base_inc));   // we just add 1 to the value, so the highest value per byte is 64
       }
       
-      _mm_storeu_si128( (__m128i *)m_max, c_max );
-      _mm_storeu_si128( (__m128i *)m_idx, c_max_idx );
+      _mm_storeu_si128( (bc_vec_t *)m_max, c_max );
+      _mm_storeu_si128( (bc_vec_t *)m_idx, c_max_idx );
       for( i = 0; i < 8; i++ )
         if ( m_max[i] > 0 )
           if ( max_sum_cnt < m_max[i] )
@@ -573,8 +573,8 @@ void bcp_DoBCLCofactorByCube(bcp p, bcl l, bc c, int exclude)
   int i;
   int b;
   bc lc;
-  __m128i cc;
-  __m128i dc;
+  bc_vec_t cc;
+  bc_vec_t dc;
   
   dc = _mm_loadu_si128(bcp_GetGlobalCube(p, 3));
   
@@ -625,8 +625,8 @@ int bcp_IsBCLUnate(bcp p)
   int b;
   bc zero_cnt_cube[8];
   bc one_cnt_cube[8];
-  __m128i z;
-  __m128i o;
+  bc_vec_t z;
+  bc_vec_t o;
 
   /* "misuse" the cubes as SIMD storage area for the counters */
   zero_cnt_cube[0] = bcp_GetGlobalCube(p, 4);

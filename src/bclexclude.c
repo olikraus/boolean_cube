@@ -1,4 +1,4 @@
-/*
+﻿/*
 
   bcexclude.c
 
@@ -86,7 +86,7 @@ int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp)
   int is_any_negative_var_used;
   int i, j;
   int grp_var_cnt = 0;
-  __m128i mask;
+  bc_vec_t mask;
 
   
   bcp_StartCubeStackFrame(p);
@@ -276,11 +276,11 @@ int bcl_ExcludeBCLVars(bcp p, bcl l, bcl grp)
 static int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
 {
   bc cube = bcp_GetBCLCube(p,l,idx);
-  __m128i zero_mask = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));       // idx 0: all illegal (00), idx 1: all zero (01), idx 2: all one (10) and idx 3: all don't care (11)
-  __m128i one_mask = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 2));       // idx 0: all illegal (00), idx 1: all zero (01), idx 2: all one (10) and idx 3: all don't care (11)  
-  __m128i r;
-  __m128i z;
-  __m128i o;
+  bc_vec_t zero_mask = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 1));       // idx 0: all illegal (00), idx 1: all zero (01), idx 2: all one (10) and idx 3: all don't care (11)
+  bc_vec_t one_mask = _mm_loadu_si128(bcp_GetBCLCube(p, p->global_cube_list, 2));       // idx 0: all illegal (00), idx 1: all zero (01), idx 2: all one (10) and idx 3: all don't care (11)  
+  bc_vec_t r;
+  bc_vec_t z;
+  bc_vec_t o;
   unsigned j;
   unsigned zero_cnt;
   unsigned one_cnt;
@@ -308,7 +308,7 @@ static int bcp_DoBCLCubeExcludeGroup(bcp p, bcl l, int idx, bc grp_dc_mask)
     one_cnt += __builtin_popcountll(~_mm_cvtsi128_si64(_mm_unpackhi_epi64(o, o)));
     if ( one_cnt > 0 && one_pos < 0 )
     {
-        // calculate the position of the one for the upper half part of the __m128i, only required for case 2
+        // calculate the position of the one for the upper half part of the bc_vec_t, only required for case 2
         one_pos = __builtin_ctzll(~_mm_cvtsi128_si64(_mm_unpackhi_epi64(o, o))) / 2;
         printf("bcp_DoBCLCubeExcludeGroup: Upper 64 bit one_pos = %d\n", one_pos);
         one_pos += p->vars_per_blk_cnt/2 + j*p->vars_per_blk_cnt; 
@@ -391,7 +391,7 @@ int bcp_DoBCLExcludeGroup(bcp p, bcl l, bc grp)
 {
   bc grp_dc_mask;
   int j;
-  __m128i r;
+  bc_vec_t r;
   
   bcp_StartCubeStackFrame(p);
   grp_dc_mask = bcp_GetTempCube(p);  // goal is to create a new cube with 00 for not member and 11 for member variables

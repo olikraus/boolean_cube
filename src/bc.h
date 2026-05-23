@@ -36,7 +36,7 @@
       internal value 2: char 1, variable value is one
       internal value 3: char -, don't care, variable not used
     Bit encoding: one=10, zero=01, don't care=11, illegal=00
-  - Blk (block): A physical unit in the uC which can group multiple variables, currently this is a __m128i object
+  - Blk (block): A physical unit in the uC which can group multiple variables, currently this is a bc_vec_t object
   - Boolean Cube (BC): A vector of multiple blocks, which can hold all variables of a boolean cube problem. Usually this is interpreted as a "product" ("and" operation) of the boolean variables
   - Boolean Cube Problem (BCP): A master structure with a given number of boolean variables ("var_cnt") 
   - Boolean Cube List (BCP): A list of Boolean Cubes
@@ -54,9 +54,33 @@
 #include "co.h"         /* this will also include FCGI_stdio.h */
 
 
+/*
+  Vector extension selector:
+    0: no extension (not implemented)
+    1: SSE 128 bit
+    2: AVX 256 bit
+    3: AVX-512 512 bit
+*/
+#ifndef BC_EXT
+#define BC_EXT 1
+#endif
+
+#if BC_EXT == 1
+typedef __m128i bc_vec_t;
+#elif BC_EXT == 2
+typedef __m256i bc_vec_t;
+#elif BC_EXT == 3
+typedef __m512i bc_vec_t;
+#elif BC_EXT == 0
+#error "BC_EXT=0 (no extension) is currently not implemented"
+#else
+#error "Invalid BC_EXT value (expected 0..3)"
+#endif
+
+
 /* forward declarations */
 typedef struct bcp_struct *bcp;		// problem structure, required as first argument for almost all functions 
-typedef __m128i *bc;		// a single boolean cube is a vector of __m128i objects. The size of this vector is stored in the "blk_cnt" member of bcp
+typedef bc_vec_t *bc;		// a single boolean cube is a vector of bc_vec_t objects. The size of this vector is stored in the "blk_cnt" member of bcp
 typedef struct bcl_struct *bcl;		// boolean cube list
 typedef struct bcx_struct *bcx;		// abstract syntax tree of a boolean cube expresion
 
@@ -66,9 +90,9 @@ typedef struct bcx_struct *bcx;		// abstract syntax tree of a boolean cube expre
 struct bcp_struct
 {
   int var_cnt;  // number of variables per cube
-  int blk_cnt;  // number of blocks per cube, one block is one __m128i = 64 variables
-  int vars_per_blk_cnt; // number of variables per block --> 64, because one variable requires 2 bit, so a __m128i can hold 64 variables
-  int bytes_per_cube_cnt; // number of bytes per cube, this is blk_cnt*sizeof(__m128i)
+  int blk_cnt;  // number of blocks per cube, one block is one bc_vec_t
+  int vars_per_blk_cnt; // number of variables per block: sizeof(bc_vec_t)*4 (2 bits per variable)
+  int bytes_per_cube_cnt; // number of bytes per cube, this is blk_cnt*sizeof(bc_vec_t)
   char *cube_to_str;    // storage area for one visual representation of a cube
   bcl stack_cube_list;    // storage area for temp cubes
   int stack_frame_pos[BCP_MAX_STACK_FRAME_DEPTH];
@@ -98,7 +122,7 @@ struct bcl_struct
   volatile int cnt;       // there are algoritms which may modify the cnt, so tell the compiler to always get this data from the structure
   int max;
   int last_deleted;
-  __m128i *list;        // max * var_cnt / 64 entries
+  bc_vec_t *list;        // packed cube storage
   uint8_t *flags;       // bit 0 is the cube deleted flag
 };
 
@@ -125,7 +149,7 @@ struct bcx_struct
 
 /* bcutil.c */
 extern int bc_log_level;
-void print128_num(__m128i var);
+void print128_num(bc_vec_t var);
 void logprint(int log, const char *fmt, ...);
 
 

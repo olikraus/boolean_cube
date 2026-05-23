@@ -1,4 +1,4 @@
-/*
+﻿/*
 
   bcp.c
   
@@ -61,9 +61,9 @@ static void _bcp_SetCubeVar(bcp p, bc c, unsigned var_pos, unsigned value)
 static int bcp_var_cnt_init(bcp p, size_t var_cnt)
 {
   p->var_cnt = var_cnt;
-  p->vars_per_blk_cnt = sizeof(__m128i)*4;
+  p->vars_per_blk_cnt = sizeof(bc_vec_t)*4;
   p->blk_cnt = (var_cnt + p->vars_per_blk_cnt-1)/p->vars_per_blk_cnt;
-  p->bytes_per_cube_cnt = p->blk_cnt*sizeof(__m128i);
+  p->bytes_per_cube_cnt = p->blk_cnt*sizeof(bc_vec_t);
   //printf("p->bytes_per_cube_cnt=%d\n", p->bytes_per_cube_cnt);
   p->stack_depth = 0;
   p->cube_to_str = (char *)malloc(p->var_cnt+1); 
