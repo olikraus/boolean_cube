@@ -14,3 +14,17 @@ src/bcc.exe
 json/F907_1.json
 json/F907.json
 .gitignore
+json/gmon.out
+src/gmon.out
+src/coverage.info
+src/15187_0_1724833082.injson
+.gitignore
+.gitignore
+json/xgroup_p_ignorevars.json
+.gitignore
+json/xgroup_p.json
+src/15187_0_1724833082.outjson
+src/15299_0_1714758078.injson
+src/out.json
+src/tmp.json
+src/vtm.json

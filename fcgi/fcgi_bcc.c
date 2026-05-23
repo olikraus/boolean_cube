@@ -244,6 +244,34 @@ shared_config_t *config = NULL;
 int local_call_count = 0;
 const size_t shm_size = sizeof(shared_config_t);
 
+/* Runtime CPU architecture levels for dashboard and compatibility checks */
+static int bc_get_processor_arch(void)
+{
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)
+  if (__builtin_cpu_supports("avx512f") && __builtin_cpu_supports("avx512bw"))
+    return 3;
+  if (__builtin_cpu_supports("avx2"))
+    return 2;
+  return 1;
+#else
+  return 1;
+#endif
+}
+
+static const char *bc_get_arch_name(int arch)
+{
+  if (arch == 3)
+    return "AVX512";
+  if (arch == 2)
+    return "AVX";
+  return "SSE";
+}
+
+static int bc_is_binary_compatible_with_processor(int processor_arch)
+{
+  return BC_EXT >= processor_arch;
+}
+
 
 /* Helper: Load Disk Data to RAM with Double Buffering and Atomic Swap */
 void read_config_data_from_disk()
@@ -449,6 +477,9 @@ int main(void)
     parse_query();
     mode = get_query_val("mode");
 
+    int processor_arch = bc_get_processor_arch();
+    int is_bc_compatible = bc_is_binary_compatible_with_processor(processor_arch);
+
     if (mode && strcmp(mode, "update") == 0 && method && strcmp(method, "POST") == 0)
     {
       int len = atoi(getenv("CONTENT_LENGTH") ? getenv("CONTENT_LENGTH") : "0");
@@ -494,9 +525,17 @@ int main(void)
         fprintf(stderr, "[bcc.fcgi] Task data read, content-length=%d\n", len);
         fflush(stderr);
         printf("Content-type: application/json\r\n\r\n");
-        int active = config->active_buffer;
-        if (active >= 0) bcc_task(config->json_data[active], task_data);
-        else printf("[]");
+        if (is_bc_compatible == 0)
+        {
+          fprintf(stderr, "[bcc.fcgi] Skipping task execution: compiled BC_EXT=%d (%s) not compatible with processor architecture %d (%s)\n", BC_EXT, BC_EXT_NAME, processor_arch, bc_get_arch_name(processor_arch));
+          printf("{\"error\":\"Binary/CPU architecture mismatch\",\"build_bc_ext\":%d,\"build_bc_ext_name\":\"%s\",\"processor_arch\":%d,\"processor_arch_name\":\"%s\"}", BC_EXT, BC_EXT_NAME, processor_arch, bc_get_arch_name(processor_arch));
+        }
+        else
+        {
+          int active = config->active_buffer;
+          if (active >= 0) bcc_task(config->json_data[active], task_data);
+          else printf("[]");
+        }
         fflush(stdout);
         free(task_data);
       }
@@ -533,6 +572,9 @@ int main(void)
       printf("<table>"
              "<tr><th>Metric Group</th><th>Field</th><th>Value</th></tr>"
              "<tr><td><b>Version Control</b></td><td>Layout Version</td><td><code>%d</code></td></tr>"
+             "<tr><td><b>Build</b></td><td>Compiled BC_EXT</td><td>%d (%s)</td></tr>"
+             "<tr><td><b>Processor</b></td><td>Detected Architecture</td><td>%d (%s)</td></tr>"
+             "<tr><td></td><td>Compatibility Rule (BC_EXT >= Arch)</td><td>%s</td></tr>"
              "<tr><td><b>Worker Process</b></td><td>Current PID</td><td>%d</td></tr>"
              "<tr><td></td><td>Calls to this PID</td><td>%d</td></tr>"
              "<tr><td></td><td>Heap Usage</td><td>%lu KB</td></tr>"
@@ -545,7 +587,11 @@ int main(void)
              "<tr><td><b>Persistence</b></td><td>Config Path</td><td><code>%s</code></td></tr>"
              "<tr><td></td><td>File Status</td><td>%s / %s (Size: %ld)</td></tr>"
              "</table>",
-             config->layout_version, getpid(), local_call_count, get_heap_usage(), config->update_count, config->task_count, config->disk_read_count, active, (active >= 0) ? config->config_len[active] : 0, MAX_CONFIG_SIZE, CONFIG_PATH, file_readable ? "Readable" : "<b style='color:red'>Unreadable</b>", file_writable ? "Writable" : "<b style='color:red'>Read-Only</b>", file_size);
+             config->layout_version,
+             BC_EXT, BC_EXT_NAME,
+             processor_arch, bc_get_arch_name(processor_arch),
+             is_bc_compatible ? "<span class='status-tag'>OK</span>" : "<b style='color:red'>MISMATCH</b>",
+             getpid(), local_call_count, get_heap_usage(), config->update_count, config->task_count, config->disk_read_count, active, (active >= 0) ? config->config_len[active] : 0, MAX_CONFIG_SIZE, CONFIG_PATH, file_readable ? "Readable" : "<b style='color:red'>Unreadable</b>", file_writable ? "Writable" : "<b style='color:red'>Read-Only</b>", file_size);
       printf("<h3>Global RAM Configuration (Buffer %d):</h3><pre>%s</pre>", active, (active >= 0) ? config->json_data[active] : "N/A");
       printf("</div></body></html>");
       fflush(stdout);

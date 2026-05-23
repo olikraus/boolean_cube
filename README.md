@@ -98,6 +98,16 @@ Example:
 ./bcc -ojpp -json ../json/minimize.json  -json ../json/dc_var.json
 ```
 
+## VS Code Development Scripts (Windows/MSYS2)
+
+The following scripts are for VS Code development and testing only.
+They are not intended for production deployment.
+
+ - `bcc/run_bcselftest_msys2.ps1`
+	 Build and selftest helper for command line `bcc`.
+ - `fcgi/build_fcgi_msys2.ps1`
+	 Build helper for `bcc.fcgi`.
+
 
 ## JSON input file
 
