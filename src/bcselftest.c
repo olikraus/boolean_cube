@@ -610,6 +610,10 @@ void generated_test_cases(void)
   int *vcl;
   int pos;
   int tautology;
+  char *all_dc_cube;
+  char *mixed_cube;
+  char *large_bcl_input;
+  int i;
 
   printf("Generated test cases\n");
 
@@ -702,6 +706,62 @@ void generated_test_cases(void)
   bcp_AndBCL(p, a);
   generated_expect_equal_cubes(p, "bcp_AndBCL", a, "11\n");
   bcp_DeleteBCL(p, a);
+  bcp_Delete(p);
+
+  p = bcp_New(600);
+  assert(p != NULL);
+  printf("Generated very large cube tests\n");
+
+  all_dc_cube = (char *)malloc(601);
+  mixed_cube = (char *)malloc(601);
+  large_bcl_input = (char *)malloc(1203);
+  assert(all_dc_cube != NULL);
+  assert(mixed_cube != NULL);
+  assert(large_bcl_input != NULL);
+
+  for ( i = 0; i < 600; i++ )
+  {
+    all_dc_cube[i] = '-';
+    switch ( i % 7 )
+    {
+      case 0:
+      case 1:
+      case 2:
+        mixed_cube[i] = '-';
+        break;
+      case 3:
+      case 4:
+        mixed_cube[i] = '0';
+        break;
+      default:
+        mixed_cube[i] = '1';
+        break;
+    }
+  }
+  all_dc_cube[600] = '\0';
+  mixed_cube[600] = '\0';
+
+  memcpy(large_bcl_input, all_dc_cube, 600);
+  large_bcl_input[600] = '\n';
+  memcpy(large_bcl_input + 601, mixed_cube, 600);
+  large_bcl_input[1201] = '\n';
+  large_bcl_input[1202] = '\0';
+
+  a = bcp_NewBCLByString(p, large_bcl_input);
+  assert(a != NULL);
+  assert(a->cnt == 2);
+
+  tautology = bcp_IsBCLTautology(p, a);
+  assert(tautology == 1);
+
+  bcp_DoBCLSingleCubeContainment(p, a);
+  assert(a->cnt == 1);
+  generated_expect_cube_string(p, "large cube single containment", bcp_GetBCLCube(p, a, 0), all_dc_cube);
+
+  bcp_DeleteBCL(p, a);
+  free(large_bcl_input);
+  free(mixed_cube);
+  free(all_dc_cube);
   bcp_Delete(p);
 
   p = bcp_New(3);
