@@ -612,7 +612,10 @@ void generated_test_cases(void)
   int tautology;
   char *all_dc_cube;
   char *mixed_cube;
+  char *lit_cube;
   char *large_bcl_input;
+  char *single_mixed_input;
+  char *single_lit_input;
   int i;
 
   printf("Generated test cases\n");
@@ -714,10 +717,16 @@ void generated_test_cases(void)
 
   all_dc_cube = (char *)malloc(601);
   mixed_cube = (char *)malloc(601);
+  lit_cube = (char *)malloc(601);
   large_bcl_input = (char *)malloc(1203);
+  single_mixed_input = (char *)malloc(602);
+  single_lit_input = (char *)malloc(602);
   assert(all_dc_cube != NULL);
   assert(mixed_cube != NULL);
+  assert(lit_cube != NULL);
   assert(large_bcl_input != NULL);
+  assert(single_mixed_input != NULL);
+  assert(single_lit_input != NULL);
 
   for ( i = 0; i < 600; i++ )
   {
@@ -740,12 +749,22 @@ void generated_test_cases(void)
   }
   all_dc_cube[600] = '\0';
   mixed_cube[600] = '\0';
+  memcpy(lit_cube, all_dc_cube, 601);
+  lit_cube[0] = '1';
 
   memcpy(large_bcl_input, all_dc_cube, 600);
   large_bcl_input[600] = '\n';
   memcpy(large_bcl_input + 601, mixed_cube, 600);
   large_bcl_input[1201] = '\n';
   large_bcl_input[1202] = '\0';
+
+  memcpy(single_mixed_input, mixed_cube, 600);
+  single_mixed_input[600] = '\n';
+  single_mixed_input[601] = '\0';
+
+  memcpy(single_lit_input, lit_cube, 600);
+  single_lit_input[600] = '\n';
+  single_lit_input[601] = '\0';
 
   a = bcp_NewBCLByString(p, large_bcl_input);
   assert(a != NULL);
@@ -759,7 +778,45 @@ void generated_test_cases(void)
   generated_expect_cube_string(p, "large cube single containment", bcp_GetBCLCube(p, a, 0), all_dc_cube);
 
   bcp_DeleteBCL(p, a);
+
+  b = bcp_NewBCLWithCube(p, 3);
+  c = bcp_NewBCLByString(p, single_mixed_input);
+  assert(b != NULL);
+  assert(c != NULL);
+  assert(c->cnt == 1);
+  assert(bcp_IsBCLSubset(p, b, c) != 0);
+  assert(bcp_IsBCLSubset(p, c, b) == 0);
+
+  a = bcp_NewBCLWithCube(p, 3);
+  assert(a != NULL);
+  assert(bcp_IntersectionBCL(p, a, c) != 0);
+  assert(a->cnt == 1);
+  generated_expect_cube_string(p, "large cube intersection with universal", bcp_GetBCLCube(p, a, 0), mixed_cube);
+
+  d = bcp_NewBCLComplement(p, b);
+  assert(d != NULL);
+  assert(d->cnt == 0);
+
+  bcp_DeleteBCL(p, d);
+  bcp_DeleteBCL(p, a);
+  bcp_DeleteBCL(p, c);
+  bcp_DeleteBCL(p, b);
+
+  a = bcp_NewBCLByString(p, single_lit_input);
+  assert(a != NULL);
+  assert(a->cnt == 1);
+
+  b = bcp_NewBCLCofacterByVariable(p, a, 599, 2);
+  assert(b != NULL);
+  assert(b->cnt == 1);
+  generated_expect_cube_string(p, "large cube cofactor var=1", bcp_GetBCLCube(p, b, 0), lit_cube);
+
+  bcp_DeleteBCL(p, b);
+  bcp_DeleteBCL(p, a);
+  free(single_lit_input);
+  free(single_mixed_input);
   free(large_bcl_input);
+  free(lit_cube);
   free(mixed_cube);
   free(all_dc_cube);
   bcp_Delete(p);
