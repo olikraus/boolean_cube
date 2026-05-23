@@ -12,7 +12,7 @@ CFLAGS = -g -Wall -I$(COPATH) -I$(BCPATH) -I. -DBC_EXT=$(BC_EXT)
 ifeq ($(BC_EXT),1)
 CFLAGS += -msse2 -march=silvermont
 else ifeq ($(BC_EXT),2)
-CFLAGS += -mavx2
+CFLAGS += -mavx2 -march=haswell
 else ifeq ($(BC_EXT),3)
 CFLAGS += -mavx512f -mavx512bw
 endif
