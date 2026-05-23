@@ -713,7 +713,7 @@ void generated_test_cases(void)
 
   p = bcp_New(600);
   assert(p != NULL);
-  printf("Generated very large cube tests\n");
+  printf("Generated large BCL tests\n");
 
   all_dc_cube = (char *)malloc(601);
   mixed_cube = (char *)malloc(601);
