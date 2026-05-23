@@ -68,9 +68,12 @@ More details can be found here: https://gcc.gnu.org/onlinedocs/gcc/x86-Options.h
 
 On a linux pc, use `lscpu` to check for SSE2. The reference guide for SSE is available here: https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html
 
+The code now also includes AVX(2) extention, which still under development.
 
 This project requires the c-object library https://github.com/olikraus/c-object .
 Especially the two files "co.h" and "co.c" from https://github.com/olikraus/c-object/tree/main/co are required.
+
+
 
 ## Command Line Options
 
