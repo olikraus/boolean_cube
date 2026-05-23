@@ -1,4 +1,6 @@
 # Makefile Boolean Cube Calculator
+# Use BC_EXT=1 for SSE2, BC_EXT=2 for AVX2, BC_EXT=3 for AVX-512 (if supported by your CPU and OS)
+
 
 
 COPATH = ../../c-object/co
